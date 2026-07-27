@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+{% block title %}Recipes — Smart Recipe Shopping List{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">Pick your recipes, we'll write the list</p>
+    <h1>What are you cooking this week?</h1>
+    <p class="hero-sub">
+        Select recipes, set servings, and choose a diet profile — ingredients
+        get merged into one list, substituted where needed, and grouped by aisle.
+    </p>
+</section>
+
+<form action="{{ url_for('generate') }}" method="POST" class="builder">
+
+    <div class="recipe-grid">
+        {% for entry in recipes %}
+        {% set recipe = entry.recipe %}
+        <div class="recipe-card">
+            <label class="recipe-select">
+                <input type="checkbox" name="use_recipe" value="{{ recipe.id }}">
+                <span class="recipe-title">{{ recipe.title }}</span>
+            </label>
+
+            <div class="servings-row">
+                <label for="servings_{{ recipe.id }}">Servings</label>
+                <input
+                    type="number"
+                    id="servings_{{ recipe.id }}"
+                    name="servings_{{ recipe.id }}"
+                    value="{{ recipe.servings }}"
+                    min="1"
+                    step="1">
+                <span class="servings-hint">(recipe makes {{ recipe.servings }})</span>
+            </div>
+
+            <p class="instructions">{{ recipe.instructions }}</p>
+
+            <ul class="ingredient-preview">
+                {% for ing in entry.ingredients %}
+                <li>{{ ing.quantity | round(1) }} {{ ing.unit }} — {{ ing.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="diet-panel">
+        <label for="diet_type">Shopping for a diet profile?</label>
+        <select id="diet_type" name="diet_type">
+            <option value="none">No substitutions — buy as written</option>
+            {% for d in diet_types %}
+            <option value="{{ d.diet_type }}">{{ d.diet_type | capitalize }}-friendly</option>
+            {% endfor %}
+        </select>
+        <p class="diet-hint">
+            Ingredients this profile flags (e.g. sugar, gluten flour) are swapped
+            automatically at the right quantity — not just 1:1.
+        </p>
+    </div>
+
+    <button type="submit" class="cta">Generate shopping list</button>
+</form>
+{% endblock %}

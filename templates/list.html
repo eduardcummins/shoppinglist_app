@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}Shopping List #{{ shopping_list.id }}{% endblock %}
+
+{% block content %}
+<div class="receipt-wrap">
+    <div class="receipt">
+        <div class="receipt-header">
+            <h1>Shopping List <span class="list-number">#{{ shopping_list.id }}</span></h1>
+            <p class="receipt-meta">
+                {{ shopping_list.created_at }}
+                {% if shopping_list.diet_type != 'none' %}
+                    · <span class="diet-badge">{{ shopping_list.diet_type | capitalize }}-friendly</span>
+                {% endif %}
+            </p>
+
+            <div class="progress-row">
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {{ (checked / total * 100) if total else 0 }}%;"></div>
+                </div>
+                <span class="progress-label">{{ checked }} of {{ total }} in the cart</span>
+            </div>
+        </div>
+
+        {% for category, items in grouped.items() %}
+        <div class="aisle">
+            <h2 class="aisle-name">{{ category }}</h2>
+            <ul class="item-list">
+                {% for item in items %}
+                <li class="item {{ 'checked' if item.checked else '' }}">
+                    <form action="{{ url_for('toggle_item', list_id=shopping_list.id, item_id=item.id) }}" method="POST">
+                        <button type="submit" class="check-btn" aria-label="Toggle {{ item.ingredient_name }}">
+                            {{ '✓' if item.checked else '' }}
+                        </button>
+                    </form>
+                    <span class="item-qty">{{ item.quantity | round(2) }} {{ item.unit }}</span>
+                    <span class="item-name">{{ item.ingredient_name }}</span>
+                    {% if item.note %}
+                    <span class="item-note">{{ item.note }}</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+
+        {% if total == 0 %}
+        <p class="empty">No items on this list.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="list-footer">
+    <a href="{{ url_for('index') }}" class="link-back">← Build another list</a>
+    <a href="{{ url_for('all_lists') }}" class="link-back">View all lists</a>
+</div>
+{% endblock %}

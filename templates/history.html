@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block title %}My Lists — Smart Recipe Shopping List{% endblock %}
+
+{% block content %}
+<section class="hero hero-compact">
+    <p class="eyebrow">Past trips</p>
+    <h1>Your shopping lists</h1>
+</section>
+
+{% if lists %}
+<ul class="history-list">
+    {% for l in lists %}
+    <li class="history-item">
+        <a href="{{ url_for('view_list', list_id=l.id) }}">
+            <span class="history-number">List #{{ l.id }}</span>
+            <span class="history-date">{{ l.created_at }}</span>
+            {% if l.diet_type != 'none' %}
+            <span class="diet-badge">{{ l.diet_type | capitalize }}-friendly</span>
+            {% endif %}
+            <span class="history-progress">{{ l.checked_count or 0 }} / {{ l.item_count }} checked</span>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No lists yet — <a href="{{ url_for('index') }}">generate your first one</a>.</p>
+{% endif %}
+{% endblock %}
