@@ -1,11 +1,11 @@
 {% extends "layout.html" %}
-{% block title %}Shopping List #{{ shopping_list.id }}{% endblock %}
+{% block title %}{{ shopping_list.name }}{% endblock %}
 
 {% block content %}
 <div class="receipt-wrap">
     <div class="receipt">
         <div class="receipt-header">
-            <h1>Shopping List <span class="list-number">#{{ shopping_list.id }}</span></h1>
+            <h1>{{ shopping_list.name }} <span class="list-number">#{{ shopping_list.id }}</span></h1>
             <p class="receipt-meta">
                 {{ shopping_list.created_at }}
                 {% if shopping_list.diet_type != 'none' %}

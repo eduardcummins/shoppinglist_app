@@ -98,6 +98,25 @@ a:hover { text-decoration: underline; }
 .hero h1 { font-size: 2rem; margin-bottom: 10px; }
 .hero-sub { color: var(--muted); max-width: 60ch; margin: 0; }
 
+/* ---------------- Recipe search ---------------- */
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.search-form input[type="search"] {
+    flex: 1;
+    max-width: 360px;
+    font-family: 'Inter', sans-serif;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    font-size: 0.95rem;
+    background: var(--paper-raised);
+}
+
 /* ---------------- Recipe picker ---------------- */
 .recipe-grid {
     display: grid;
@@ -166,6 +185,145 @@ a:hover { text-decoration: underline; }
 }
 
 .ingredient-preview li { padding: 2px 0; }
+
+/* ---------------- New recipe form ---------------- */
+.recipe-form-panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 20px;
+}
+
+.recipe-form-panel label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.recipe-form-panel input[type="text"],
+.recipe-form-panel input[type="number"],
+.recipe-form-panel textarea {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+}
+
+.recipe-form-panel textarea { resize: vertical; }
+
+.ingredient-row {
+    display: grid;
+    grid-template-columns: 90px 140px 1fr 130px 36px;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.ingredient-row input,
+.ingredient-row select {
+    font-family: 'Inter', sans-serif;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.remove-ingredient-btn {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid var(--warn);
+    border-radius: 6px;
+    background: var(--paper-raised);
+    color: var(--warn);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.remove-ingredient-btn:hover { background: var(--warn-soft); }
+
+.ingredient-autocomplete { position: relative; }
+
+.autocomplete-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.suggestion-item:hover { background: var(--accent-soft); }
+
+.secondary-btn {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.secondary-btn:hover { background: #c9dcc5; }
+
+@media (max-width: 640px) {
+    .ingredient-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ---------------- Name panel ---------------- */
+.name-panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+}
+
+.name-panel label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.optional-hint {
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.name-panel input[type="text"] {
+    width: 100%;
+    max-width: 320px;
+    font-family: 'Inter', sans-serif;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    font-size: 0.95rem;
+}
 
 /* ---------------- Diet panel ---------------- */
 .diet-panel {
@@ -353,9 +511,29 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---------------- History ---------------- */
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.link-danger {
+    background: none;
+    border: none;
+    color: var(--warn);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 0;
+    text-decoration: underline;
+}
+
+.link-danger:hover { opacity: 0.8; }
+
 .history-list { list-style: none; margin: 0; padding: 0; }
 
 .history-item {
+    display: flex;
+    align-items: center;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     margin-bottom: 10px;
@@ -370,7 +548,25 @@ a:hover { text-decoration: underline; }
     text-decoration: none !important;
     color: var(--ink) !important;
     flex-wrap: wrap;
+    flex: 1;
 }
+
+.history-item form { margin: 0 14px 0 0; }
+
+.delete-btn {
+    width: 26px;
+    height: 26px;
+    border: 1.5px solid var(--warn);
+    border-radius: 6px;
+    background: var(--paper-raised);
+    color: var(--warn);
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.delete-btn:hover { background: var(--warn-soft); }
 
 .history-number {
     font-family: 'DM Mono', monospace;

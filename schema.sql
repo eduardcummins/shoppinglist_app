@@ -39,6 +39,7 @@ CREATE TABLE dietary_substitutions (
 -- profile that was active, so a list is reproducible/explainable later.
 CREATE TABLE shopping_lists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     diet_type TEXT NOT NULL DEFAULT 'none'
 );
@@ -84,10 +85,6 @@ INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES
 (2, 7, 200.0, 'ml'),    -- 200ml Milk
 (2, 8, 5.0, 'grams');   -- 5g Baking Powder
 
--- Diabetic Profile: Swap Sugar (1) for Stevia (2) with a 0.1 multiplier (10g sugar = 1g stevia)
-INSERT INTO dietary_substitutions (diet_type, original_ingredient_id, substitute_ingredient_id, conversion_factor, substitution_note) VALUES
-('diabetic', 1, 2, 0.1, 'Swapped for Stevia (1:10 ratio) — sugar is not diabetic-friendly.');
-
--- Gluten-Free Profile: Swap All-Purpose Flour (3) for Almond Flour (4) at a 1:1 ratio
-INSERT INTO dietary_substitutions (diet_type, original_ingredient_id, substitute_ingredient_id, conversion_factor, substitution_note) VALUES
-('gluten-free', 3, 4, 1.0, 'Swapped for Almond Flour (1:1 ratio) — standard flour contains gluten.');
+-- dietary_substitutions rows are no longer seeded here — they're loaded from
+-- substitutions_<diet>.csv files by load_dietary_substitutions() in app.py
+-- on every startup, so they can be edited without touching SQL.

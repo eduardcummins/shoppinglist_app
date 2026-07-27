@@ -7,6 +7,6 @@ A shopping list app featuring semantic ingredient normalisation for recipe aggre
 - **Smart Swaps:** Will modify recipes based on condition profiles (e.g., Diabetic, Coeliac).
 
 ## Goal
-- **The overarching goal has been to identify certain features already avaiable in shopping list apps and bring them together or improve them. 
-- **Some recipe apps treat ingredients as literal, raw text strings with zero semantic understanding.
-- **Some apps restrict users to a small database of pre-approved recipes.
+- The overarching goal has been to identify certain features already avaiable in shopping list apps and bring them together or improve them. 
+- Some recipe apps treat ingredients as literal, raw text strings with zero semantic understanding.
+- Some apps restrict users to a small database of pre-approved recipes.

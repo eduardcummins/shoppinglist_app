@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+{% block title %}New Recipe — Smart Recipe Shopping List{% endblock %}
+
+{% block content %}
+<section class="hero hero-compact">
+    <p class="eyebrow">Grow the recipe box</p>
+    <h1>Add a recipe</h1>
+</section>
+
+<form action="{{ url_for('new_recipe') }}" method="POST" class="builder">
+    <div class="recipe-form-panel">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+
+        <label for="instructions">Instructions</label>
+        <textarea id="instructions" name="instructions" rows="4" required></textarea>
+
+        <label for="servings">Servings</label>
+        <input type="number" id="servings" name="servings" min="1" step="1" value="4" required>
+    </div>
+
+    <div class="recipe-form-panel">
+        <label>Ingredients</label>
+
+        <div id="ingredient-rows">
+            <div class="ingredient-row">
+                <input type="number" name="quantity" step="any" min="0" placeholder="Qty" required>
+                <select name="unit" required>
+                    {% for u in units %}
+                    <option value="{{ u }}">{{ u }}</option>
+                    {% endfor %}
+                </select>
+                <div class="ingredient-autocomplete">
+                    <input
+                        type="text"
+                        name="ingredient_name"
+                        class="ingredient-search"
+                        placeholder="Ingredient name"
+                        autocomplete="off"
+                        required>
+                    <input type="hidden" name="ingredient_id" class="ingredient-id-hidden">
+                    <ul class="autocomplete-suggestions" hidden></ul>
+                </div>
+                <select name="category">
+                    {% for c in categories %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="remove-ingredient-btn" aria-label="Remove ingredient">✕</button>
+            </div>
+        </div>
+
+        <button type="button" id="add-ingredient-btn" class="secondary-btn">+ Add another ingredient</button>
+        <p class="diet-hint">
+            Start typing to search existing ingredients — click a match to reuse it
+            (its category fills in automatically). Leave your typed name as-is to
+            add it as a brand new ingredient, using the category you pick.
+        </p>
+    </div>
+
+    <button type="submit" class="cta">Save recipe</button>
+</form>
+
+<script>
+    var ALL_INGREDIENTS = {{ ingredients | tojson }};
+    var MAX_SUGGESTIONS = 8;
+
+    function renderSuggestions(row, query) {
+        var list = row.querySelector('.autocomplete-suggestions');
+        query = query.trim().toLowerCase();
+        list.innerHTML = '';
+
+        if (!query) { list.hidden = true; return; }
+
+        var matches = ALL_INGREDIENTS.filter(function (ing) {
+            return ing.name.toLowerCase().indexOf(query) !== -1;
+        }).slice(0, MAX_SUGGESTIONS);
+
+        if (!matches.length) { list.hidden = true; return; }
+
+        matches.forEach(function (ing) {
+            var li = document.createElement('li');
+            li.className = 'suggestion-item';
+            li.textContent = ing.name + ' (' + ing.category + ')';
+            li.dataset.id = ing.id;
+            li.dataset.name = ing.name;
+            li.dataset.category = ing.category;
+            list.appendChild(li);
+        });
+        list.hidden = false;
+    }
+
+    function hideSuggestions(row) {
+        row.querySelector('.autocomplete-suggestions').hidden = true;
+    }
+
+    function selectSuggestion(row, id, name, category) {
+        row.querySelector('.ingredient-search').value = name;
+        row.querySelector('.ingredient-id-hidden').value = id;
+        var select = row.querySelector('select[name="category"]');
+        if (select) select.value = category;
+        hideSuggestions(row);
+    }
+
+    var ingredientRows = document.getElementById('ingredient-rows');
+
+    ingredientRows.addEventListener('input', function (e) {
+        if (!e.target.classList.contains('ingredient-search')) return;
+        var row = e.target.closest('.ingredient-row');
+        // The text no longer necessarily matches the previously picked
+        // ingredient, so drop the resolved id until another suggestion
+        // is clicked (or none is, and this becomes a new ingredient).
+        row.querySelector('.ingredient-id-hidden').value = '';
+        renderSuggestions(row, e.target.value);
+    });
+
+    ingredientRows.addEventListener('focusin', function (e) {
+        if (!e.target.classList.contains('ingredient-search')) return;
+        var row = e.target.closest('.ingredient-row');
+        if (e.target.value.trim()) renderSuggestions(row, e.target.value);
+    });
+
+    ingredientRows.addEventListener('focusout', function (e) {
+        if (!e.target.classList.contains('ingredient-search')) return;
+        var row = e.target.closest('.ingredient-row');
+        // Delay so a click on a suggestion (see mousedown below) still
+        // lands before the list disappears.
+        setTimeout(function () { hideSuggestions(row); }, 150);
+    });
+
+    ingredientRows.addEventListener('mousedown', function (e) {
+        var li = e.target.closest('.suggestion-item');
+        if (!li) return;
+        e.preventDefault(); // keep focus on the input, skip a stray focusout
+        var row = li.closest('.ingredient-row');
+        selectSuggestion(row, li.dataset.id, li.dataset.name, li.dataset.category);
+    });
+
+    document.getElementById('add-ingredient-btn').addEventListener('click', function () {
+        var newRow = ingredientRows.querySelector('.ingredient-row').cloneNode(true);
+        newRow.querySelectorAll('input').forEach(function (input) { input.value = ''; });
+        newRow.querySelectorAll('select').forEach(function (select) { select.selectedIndex = 0; });
+        var suggestions = newRow.querySelector('.autocomplete-suggestions');
+        suggestions.innerHTML = '';
+        suggestions.hidden = true;
+        ingredientRows.appendChild(newRow);
+    });
+
+    ingredientRows.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('remove-ingredient-btn')) return;
+        var rows = ingredientRows.querySelectorAll('.ingredient-row');
+        if (rows.length > 1) {
+            e.target.closest('.ingredient-row').remove();
+        }
+    });
+</script>
+{% endblock %}

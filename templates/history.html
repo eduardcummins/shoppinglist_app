@@ -8,17 +8,28 @@
 </section>
 
 {% if lists %}
+<div class="history-actions">
+    <form action="{{ url_for('delete_all_lists') }}" method="POST"
+          onsubmit="return confirm('Delete ALL shopping lists? This cannot be undone.');">
+        <button type="submit" class="link-danger">Delete all lists</button>
+    </form>
+</div>
+
 <ul class="history-list">
     {% for l in lists %}
     <li class="history-item">
         <a href="{{ url_for('view_list', list_id=l.id) }}">
-            <span class="history-number">List #{{ l.id }}</span>
+            <span class="history-number">{{ l.name }}</span>
             <span class="history-date">{{ l.created_at }}</span>
             {% if l.diet_type != 'none' %}
             <span class="diet-badge">{{ l.diet_type | capitalize }}-friendly</span>
             {% endif %}
             <span class="history-progress">{{ l.checked_count or 0 }} / {{ l.item_count }} checked</span>
         </a>
+        <form action="{{ url_for('delete_list', list_id=l.id) }}" method="POST"
+              onsubmit="return confirm('Delete this shopping list?');">
+            <button type="submit" class="delete-btn" aria-label="Delete list">✕</button>
+        </form>
     </li>
     {% endfor %}
 </ul>
