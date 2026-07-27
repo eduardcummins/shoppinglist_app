@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Condition-Managed Shopping List App
 
 A shopping list app featuring semantic ingredient normalisation for recipe aggregation, and dietary smart swaps (Diabetic/Coeliac).
@@ -10,3 +11,7 @@ A shopping list app featuring semantic ingredient normalisation for recipe aggre
 - **The overarching goal has been to identify certain features already avaiable in shopping list apps and bring them together or improve them. 
 - **Some recipe apps treat ingredients as literal, raw text strings with zero semantic understanding.
 - **Some apps restrict users to a small database of pre-approved recipes.
+=======
+# shoppinglist_app
+A shopping list app featuring semantic ingredient normalisation for recipe aggregation, and dietary smart swaps (Diabetic/Coeliac).
+>>>>>>> aae16d6e63e3066116d41352d7330634bcda8a16
