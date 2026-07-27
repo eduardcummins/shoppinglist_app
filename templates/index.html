@@ -35,6 +35,14 @@
         {% for entry in recipes %}
         {% set recipe = entry.recipe %}
         <div class="recipe-card">
+            <button
+                type="submit"
+                formaction="{{ url_for('delete_recipe', recipe_id=recipe.id) }}"
+                formmethod="POST"
+                class="delete-btn recipe-delete-btn"
+                onclick="return confirm('Delete this recipe? This cannot be undone.');"
+                aria-label="Delete recipe">✕</button>
+
             <label class="recipe-select">
                 <input type="checkbox" name="use_recipe" value="{{ recipe.id }}">
                 <span class="recipe-title">{{ recipe.title }}</span>

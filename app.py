@@ -311,6 +311,22 @@ def new_recipe():
 
 
 # ---------------------------------------------------------------------------
+# Delete a recipe (and its recipe_ingredients rows). Already-generated
+# shopping lists store their own copied-out ingredient rows and don't
+# reference recipes at all, so this can't affect them.
+# ---------------------------------------------------------------------------
+@app.route("/recipes/<int:recipe_id>/delete", methods=["POST"])
+def delete_recipe(recipe_id):
+    db = get_db()
+    db.execute("DELETE FROM recipe_ingredients WHERE recipe_id = ?", (recipe_id,))
+    db.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
+    db.commit()
+    db.close()
+    flash("Recipe deleted.")
+    return redirect(url_for("index"))
+
+
+# ---------------------------------------------------------------------------
 # Generate a shopping list from the selected recipes + servings + diet
 # ---------------------------------------------------------------------------
 @app.route("/generate", methods=["POST"])

@@ -126,10 +126,17 @@ a:hover { text-decoration: underline; }
 }
 
 .recipe-card {
+    position: relative;
     background: var(--paper-raised);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 18px;
+}
+
+.recipe-delete-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
 }
 
 .recipe-select {
