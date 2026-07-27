@@ -217,16 +217,26 @@ a:hover { text-decoration: underline; }
 
 .ingredient-row {
     display: grid;
-    grid-template-columns: 90px 140px 1fr 130px 36px;
+    grid-template-columns: 90px 140px 1fr 130px 38px;
     gap: 8px;
     margin-bottom: 10px;
     align-items: center;
 }
 
+/* Every control in the row shares one explicit height so inputs, native
+   selects (which render with their own vertical metrics per browser), and
+   the remove button all line up on the same baseline. */
+.ingredient-row input,
+.ingredient-row select,
+.ingredient-row .remove-ingredient-btn {
+    box-sizing: border-box;
+    height: 38px;
+}
+
 .ingredient-row input,
 .ingredient-row select {
     font-family: 'Inter', sans-serif;
-    padding: 8px 10px;
+    padding: 0 10px;
     border-radius: 6px;
     border: 1px solid var(--line);
     font-size: 0.9rem;
@@ -235,8 +245,7 @@ a:hover { text-decoration: underline; }
 }
 
 .remove-ingredient-btn {
-    width: 32px;
-    height: 32px;
+    width: 38px;
     border: 1.5px solid var(--warn);
     border-radius: 6px;
     background: var(--paper-raised);
