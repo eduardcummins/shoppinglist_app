@@ -51,6 +51,9 @@
 
 <div class="list-footer">
     <a href="{{ url_for('index') }}" class="link-back">← Build another list</a>
-    <a href="{{ url_for('all_lists') }}" class="link-back">View all lists</a>
+    <form action="{{ url_for('delete_list', list_id=shopping_list.id) }}" method="POST"
+          onsubmit="return confirm('Delete this shopping list?');">
+        <button type="submit" class="link-danger">Delete this list</button>
+    </form>
 </div>
 {% endblock %}

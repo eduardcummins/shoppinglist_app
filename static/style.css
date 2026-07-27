@@ -175,12 +175,6 @@ a:hover { text-decoration: underline; }
 
 .servings-hint { color: var(--muted); font-size: 0.82rem; }
 
-.instructions {
-    color: var(--muted);
-    font-size: 0.88rem;
-    margin: 10px 0;
-}
-
 .ingredient-preview {
     list-style: none;
     margin: 0;
@@ -521,53 +515,25 @@ a:hover { text-decoration: underline; }
 .list-footer {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 24px;
     margin-top: 24px;
     font-size: 0.9rem;
 }
 
-/* ---------------- History ---------------- */
-.history-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 12px;
-}
+.list-footer form { margin: 0; }
 
 .link-danger {
     background: none;
     border: none;
     color: var(--warn);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     cursor: pointer;
     padding: 4px 0;
     text-decoration: underline;
 }
 
 .link-danger:hover { opacity: 0.8; }
-
-.history-list { list-style: none; margin: 0; padding: 0; }
-
-.history-item {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    margin-bottom: 10px;
-    background: var(--paper-raised);
-}
-
-.history-item a {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 18px;
-    text-decoration: none !important;
-    color: var(--ink) !important;
-    flex-wrap: wrap;
-    flex: 1;
-}
-
-.history-item form { margin: 0 14px 0 0; }
 
 .delete-btn {
     width: 26px;
@@ -583,20 +549,6 @@ a:hover { text-decoration: underline; }
 }
 
 .delete-btn:hover { background: var(--warn-soft); }
-
-.history-number {
-    font-family: 'DM Mono', monospace;
-    font-weight: 500;
-}
-
-.history-date { color: var(--muted); font-size: 0.85rem; }
-
-.history-progress {
-    margin-left: auto;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.82rem;
-    color: var(--accent);
-}
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 520px) {

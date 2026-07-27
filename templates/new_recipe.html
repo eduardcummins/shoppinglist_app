@@ -12,9 +12,6 @@
         <label for="title">Title</label>
         <input type="text" id="title" name="title" required>
 
-        <label for="instructions">Instructions</label>
-        <textarea id="instructions" name="instructions" rows="4" required></textarea>
-
         <label for="servings">Servings</label>
         <input type="number" id="servings" name="servings" min="1" step="1" value="4" required>
     </div>
@@ -62,6 +59,10 @@
 </form>
 
 <script>
+    // Jinja's "tojson" filter here turns the Python list of ingredient
+    // dicts (passed in from app.py) into a JSON array written directly
+    // into the page, so it becomes real JavaScript data the browser can
+    // search through without a network request.
     var ALL_INGREDIENTS = {{ ingredients | tojson }};
     var MAX_SUGGESTIONS = 8;
 
@@ -72,6 +73,9 @@
 
         if (!query) { list.hidden = true; return; }
 
+        // .filter() keeps only the ingredients whose name contains what was
+        // typed; .slice(0, MAX_SUGGESTIONS) then keeps just the first 8 of
+        // those, so a very common search term doesn't flood the dropdown.
         var matches = ALL_INGREDIENTS.filter(function (ing) {
             return ing.name.toLowerCase().indexOf(query) !== -1;
         }).slice(0, MAX_SUGGESTIONS);
@@ -82,6 +86,9 @@
             var li = document.createElement('li');
             li.className = 'suggestion-item';
             li.textContent = ing.name + ' (' + ing.category + ')';
+            // .dataset lets us stash extra info directly on the element as
+            // data-id/data-name/data-category HTML attributes, so the click
+            // handler below can read them back off whichever <li> was clicked.
             li.dataset.id = ing.id;
             li.dataset.name = ing.name;
             li.dataset.category = ing.category;
@@ -104,8 +111,21 @@
 
     var ingredientRows = document.getElementById('ingredient-rows');
 
+    // Every listener below is attached once, to the shared #ingredient-rows
+    // container, rather than to each individual row. That's "event
+    // delegation": a click/input anywhere inside the container bubbles up
+    // to this one listener, which then checks e.target (the exact element
+    // that was clicked/typed in) to decide what to do. This matters because
+    // "add another ingredient" clones a whole new row with JavaScript --
+    // listeners attached directly to the original row would NOT be copied
+    // over by cloneNode, but a listener on the shared container covers
+    // every row, including ones that don't exist yet.
+
     ingredientRows.addEventListener('input', function (e) {
         if (!e.target.classList.contains('ingredient-search')) return;
+        // e.target.closest('.ingredient-row') walks up from the exact
+        // element that fired the event to the nearest ancestor matching
+        // that selector -- i.e. "which ingredient row is this input in?".
         var row = e.target.closest('.ingredient-row');
         // The text no longer necessarily matches the previously picked
         // ingredient, so drop the resolved id until another suggestion

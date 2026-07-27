@@ -60,8 +60,6 @@
                 <span class="servings-hint">(recipe makes {{ recipe.servings }})</span>
             </div>
 
-            <p class="instructions">{{ recipe.instructions }}</p>
-
             <ul class="ingredient-preview">
                 {% for ing in entry.ingredients %}
                 <li>{{ ing.quantity | round(1) }} {{ ing.unit }} — {{ ing.name }}</li>
@@ -100,15 +98,16 @@
 <script>
     // Debounced auto-submit so search filters "as you type" without
     // re-submitting on every keystroke (the list is expected to grow, so
-    // filtering happens server-side rather than in the DOM).
-    (function () {
-        var input = document.getElementById('recipe-search');
-        var form = document.getElementById('recipe-search-form');
-        var timer = null;
-        input.addEventListener('input', function () {
-            clearTimeout(timer);
-            timer = setTimeout(function () { form.submit(); }, 400);
-        });
-    })();
+    // filtering happens server-side rather than in the DOM). Each keystroke
+    // cancels the previous timer and starts a new 400ms one, so the form
+    // only actually submits once typing pauses for 400ms.
+    var searchInput = document.getElementById('recipe-search');
+    var searchForm = document.getElementById('recipe-search-form');
+    var searchTimer = null;
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () { searchForm.submit(); }, 400);
+    });
 </script>
 {% endblock %}

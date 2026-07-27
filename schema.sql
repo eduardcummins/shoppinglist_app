@@ -1,4 +1,10 @@
 -- Smart Recipe Shopping List — schema.sql
+--
+-- This file only creates empty tables. All seed data (ingredients, recipes,
+-- diet substitutions) is loaded from CSV files in the project folder by
+-- app.py on startup -- see ingredients.csv, recipes.csv, and
+-- substitutions_<diet>.csv. Edit those to add data; there's nothing to
+-- change here.
 
 CREATE TABLE ingredients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -9,7 +15,6 @@ CREATE TABLE ingredients (
 CREATE TABLE recipes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
-    instructions TEXT NOT NULL,
     servings INTEGER NOT NULL DEFAULT 4
 );
 
@@ -59,32 +64,3 @@ CREATE TABLE shopping_list_items (
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
 );
 
--- Seed Data
-INSERT INTO ingredients (id, name, category) VALUES
-(1, 'Granulated Sugar', 'Pantry'),
-(2, 'Stevia', 'Pantry'),
-(3, 'All-Purpose Flour', 'Pantry'),
-(4, 'Almond Flour', 'Pantry'),
-(5, 'Unsalted Butter', 'Dairy'),
-(6, 'Eggs', 'Dairy'),
-(7, 'Whole Milk', 'Dairy'),
-(8, 'Baking Powder', 'Pantry');
-
-INSERT INTO recipes (id, title, instructions, servings) VALUES
-(1, 'Chocolate Chip Cookies', 'Mix sugar, butter, and eggs. Add flour. Bake at 180°C for 12 minutes.', 4),
-(2, 'Simple Pancakes', 'Whisk flour, milk, and eggs. Fry on griddle until golden on both sides.', 2);
-
-INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES
-(1, 1, 100.0, 'grams'), -- 100g Sugar
-(1, 3, 200.0, 'grams'), -- 200g Flour
-(1, 5, 100.0, 'grams'), -- 100g Butter
-(1, 6, 2.0, 'units'),   -- 2 Eggs
-(2, 3, 150.0, 'grams'), -- 150g Flour
-(2, 6, 1.0, 'units'),   -- 1 Egg
-(2, 1, 20.0, 'grams'),  -- 20g Sugar
-(2, 7, 200.0, 'ml'),    -- 200ml Milk
-(2, 8, 5.0, 'grams');   -- 5g Baking Powder
-
--- dietary_substitutions rows are no longer seeded here — they're loaded from
--- substitutions_<diet>.csv files by load_dietary_substitutions() in app.py
--- on every startup, so they can be edited without touching SQL.
