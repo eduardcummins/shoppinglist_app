@@ -7,16 +7,10 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
-# Flask needs a secret key to sign session cookies (e.g. for flash messages).
-# A fixed string is fine for a local project like this one; a real deployed
-# app would use a long random value kept out of the source code.
-app.secret_key = "dev"
+app.secret_key = "dev" # Local testing
 
 UNIT_CHOICES = ["ml", "grams", "units"]
 
-# __file__ is the path to this script itself, so BASE_DIR is the folder this
-# file lives in. Building paths from it (instead of just "shopping.db") means
-# the app finds its database/schema/CSVs no matter what folder you run it from.
 BASE_DIR = os.path.dirname(__file__)
 DATABASE = os.path.join(BASE_DIR, "shopping.db")
 SCHEMA = os.path.join(BASE_DIR, "schema.sql")
@@ -28,28 +22,12 @@ SUBSTITUTIONS_GLOB = os.path.join(BASE_DIR, "substitutions_*.csv")
 def get_db():
     """Open a new database connection with row access by column name."""
     db = sqlite3.connect(DATABASE)
-    # By default a row from sqlite3 behaves like a tuple (row[0], row[1], ...).
-    # Setting row_factory to sqlite3.Row lets us also use column names, like
-    # row["name"] -- similar to what CS50's own SQL library does for you.
     db.row_factory = sqlite3.Row
-    # SQLite ignores FOREIGN KEY constraints unless you turn this on for
-    # every connection. With it on, SQLite will refuse to delete a row that
-    # other rows still point to via a foreign key -- e.g. a recipe that
-    # still has recipe_ingredients rows -- which is why every delete route
-    # in this app deletes the child rows first, then the parent row.
-    db.execute("PRAGMA foreign_keys = ON")
+    db.execute("PRAGMA foreign_keys = ON") # Will refuse to delete a recipe if it still has recipe_ingredients rows
     return db
 
 
 def init_db():
-    """Make sure every table in schema.sql exists, creating whichever ones
-    are missing. Every CREATE TABLE in schema.sql uses "IF NOT EXISTS", so
-    this is safe to run on every single startup, even against a database
-    that already has data in it -- it never touches a table that's already
-    there, so restarting the app doesn't wipe checked-off lists. This also
-    means a shopping.db that got left in a half-created state (e.g. the
-    file existed but a table was missing, which used to crash on startup)
-    just gets fixed automatically instead of crashing."""
     db = get_db()
     with open(SCHEMA) as f:
         db.executescript(f.read())
@@ -58,9 +36,7 @@ def init_db():
 
 
 def resolve_ingredient_category(category):
-    """Categories are free-form (whatever ingredients.csv says, e.g.
-    "Spices"), so any non-blank value is used as-is; a blank one defaults
-    to "Other"."""
+    """Assigns correct category to an ingredient, defaulting to "Other" if none is provided."""
     return category.strip() if category and category.strip() else "Other"
 
 
