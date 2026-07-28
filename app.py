@@ -12,7 +12,6 @@ app = Flask(__name__)
 # app would use a long random value kept out of the source code.
 app.secret_key = "dev"
 
-INGREDIENT_CATEGORIES = ["Pantry", "Dairy", "Produce", "Other"]
 UNIT_CHOICES = ["ml", "grams", "units"]
 
 # __file__ is the path to this script itself, so BASE_DIR is the folder this
@@ -43,16 +42,26 @@ def get_db():
 
 
 def init_db():
-    """(Re)create the database from schema.sql. Only runs if the db file
-    doesn't already exist, so restarting the app doesn't wipe checked-off
-    lists."""
-    if os.path.exists(DATABASE):
-        return
+    """Make sure every table in schema.sql exists, creating whichever ones
+    are missing. Every CREATE TABLE in schema.sql uses "IF NOT EXISTS", so
+    this is safe to run on every single startup, even against a database
+    that already has data in it -- it never touches a table that's already
+    there, so restarting the app doesn't wipe checked-off lists. This also
+    means a shopping.db that got left in a half-created state (e.g. the
+    file existed but a table was missing, which used to crash on startup)
+    just gets fixed automatically instead of crashing."""
     db = get_db()
     with open(SCHEMA) as f:
         db.executescript(f.read())
     db.commit()
     db.close()
+
+
+def resolve_ingredient_category(category):
+    """Categories are free-form (whatever ingredients.csv says, e.g.
+    "Spices"), so any non-blank value is used as-is; a blank one defaults
+    to "Other"."""
+    return category.strip() if category and category.strip() else "Other"
 
 
 def get_or_create_ingredient(db, name, category):
@@ -63,9 +72,9 @@ def get_or_create_ingredient(db, name, category):
     if ingredient is not None:
         return ingredient["id"]
 
-    category = category if category in INGREDIENT_CATEGORIES else "Other"
     cursor = db.execute(
-        "INSERT INTO ingredients (name, category) VALUES (?, ?)", (name, category)
+        "INSERT INTO ingredients (name, category) VALUES (?, ?)",
+        (name, resolve_ingredient_category(category)),
     )
     return cursor.lastrowid
 
@@ -84,30 +93,162 @@ def get_or_create_recipe(db, title, servings):
     return cursor.lastrowid
 
 
+# ---------------------------------------------------------------------------
+# CSV write-back: the New Recipe form and the recipe delete button write
+# their changes into ingredients.csv/recipes.csv too, so the files and the
+# database stay in sync in both directions (not just CSV -> database, like
+# the load_*_from_csv() functions below).
+# ---------------------------------------------------------------------------
+def _atomic_write_csv(path, fieldnames, rows):
+    """Write rows to path as a CSV, without ever leaving a half-written
+    file in place: the new content is written to a temporary file first,
+    then swapped into place with os.replace(), which is atomic on the same
+    filesystem. (This app's dev server handles one request at a time, so
+    two writes can't actually overlap -- this just protects against a
+    crash mid-write, e.g. the process being killed.)"""
+    temp_path = path + ".tmp"
+    with open(temp_path, "w", newline="") as f:
+        # csv.writer defaults to "\r\n" line endings (the format's official
+        # spec), but every CSV in this project uses plain "\n" -- match
+        # that so a write-back doesn't turn the whole file into a giant diff.
+        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    os.replace(temp_path, path)
+
+
+def append_ingredient_to_csv(name, category):
+    """Add one new row to ingredients.csv. Only call this for an
+    ingredient that doesn't already exist (see
+    get_or_create_ingredient_and_sync_csv) -- there's nothing to match or
+    replace, just a row to add."""
+    rows = []
+    if os.path.exists(INGREDIENTS_CSV):
+        with open(INGREDIENTS_CSV, newline="") as f:
+            rows = list(csv.DictReader(f))
+    rows.append({"name": name, "category": category})
+    _atomic_write_csv(INGREDIENTS_CSV, ["name", "category"], rows)
+
+
+def get_or_create_ingredient_and_sync_csv(db, name, category):
+    """Same as get_or_create_ingredient(), but also appends the ingredient
+    to ingredients.csv if it's genuinely new. Used only by the New Recipe
+    form's "add new ingredient" path -- the CSV-sync functions below
+    (load_recipes_from_csv, load_dietary_substitutions) also create
+    missing ingredients, but shouldn't write back to the file they're
+    reading from."""
+    existing = db.execute(
+        "SELECT id FROM ingredients WHERE LOWER(name) = LOWER(?)", (name,)
+    ).fetchone()
+    ingredient_id = get_or_create_ingredient(db, name, category)
+    if existing is None:
+        append_ingredient_to_csv(name, resolve_ingredient_category(category))
+    return ingredient_id
+
+
+RECIPE_CSV_FIELDS = ["title", "servings", "ingredient_name", "quantity", "unit"]
+
+
+def _replace_recipe_rows_in_csv(title, new_rows):
+    """Drop every existing recipes.csv row for this title (case-
+    insensitive) and write new_rows (a list of row dicts) in their place.
+    new_rows may be empty, which simply removes the title's block."""
+    rows = []
+    if os.path.exists(RECIPES_CSV):
+        with open(RECIPES_CSV, newline="") as f:
+            rows = list(csv.DictReader(f))
+
+    kept_rows = []
+    for row in rows:
+        if (row.get("title") or "").strip().lower() != title.strip().lower():
+            kept_rows.append(row)
+    kept_rows.extend(new_rows)
+
+    _atomic_write_csv(RECIPES_CSV, RECIPE_CSV_FIELDS, kept_rows)
+
+
+def upsert_recipe_in_csv(title, servings, ingredient_lines):
+    """Add or replace this recipe's block of rows in recipes.csv, matched
+    by title (case-insensitive) -- the same natural key load_recipes_from_csv()
+    uses -- so creating a recipe through the New Recipe form writes back
+    consistently, and a later sync neither re-inserts it as new nor leaves
+    stale rows behind. ingredient_lines is a list of
+    (ingredient_name, quantity, unit) tuples."""
+    new_rows = []
+    for ingredient_name, quantity, unit in ingredient_lines:
+        new_rows.append({
+            "title": title,
+            "servings": servings,
+            "ingredient_name": ingredient_name,
+            "quantity": quantity,
+            "unit": unit,
+        })
+    _replace_recipe_rows_in_csv(title, new_rows)
+
+
+def remove_recipe_from_csv(title):
+    """Remove every row for this title (case-insensitive) from
+    recipes.csv, mirroring a recipe delete in the app."""
+    _replace_recipe_rows_in_csv(title, [])
+
+
 def load_ingredients_from_csv():
-    """Add any ingredient from ingredients.csv that isn't already in the
-    database (matched by name, case-insensitive). This only ever adds rows,
-    so it's safe to run on every startup and won't erase an ingredient
-    that was added through the app itself."""
+    """Sync ingredients from ingredients.csv, matched by name
+    (case-insensitive): add any ingredient that's missing, and update its
+    category if the CSV's now says something different. Never deletes an
+    ingredient, so this is safe to run every startup (or on demand) and
+    won't erase or orphan an ingredient added through the app itself."""
     db = get_db()
     with open(INGREDIENTS_CSV, newline="") as f:
         for row in csv.DictReader(f):
             name = (row.get("name") or "").strip()
             category = (row.get("category") or "").strip()
-            if name:
+            if not name:
+                continue
+
+            existing = db.execute(
+                "SELECT * FROM ingredients WHERE LOWER(name) = LOWER(?)", (name,)
+            ).fetchone()
+
+            if existing is None:
                 get_or_create_ingredient(db, name, category)
+            elif category and category != existing["category"]:
+                db.execute(
+                    "UPDATE ingredients SET category = ? WHERE id = ?",
+                    (category, existing["id"]),
+                )
     db.commit()
     db.close()
 
 
 def load_recipes_from_csv():
-    """Add any recipe/ingredient row from recipes.csv that isn't already in
-    the database. One row = one ingredient used in one recipe, so the same
-    recipe title appears on several rows, once per ingredient. Like
-    load_ingredients_from_csv(), this only adds rows -- it never deletes or
-    changes a recipe already there, so recipes added through the New Recipe
-    form aren't wiped out on the next restart."""
+    """Sync recipes/recipe_ingredients from recipes.csv, matched by recipe
+    title (case-insensitive). One row = one ingredient used in one recipe,
+    so the same title appears on several rows, once per ingredient.
+
+    For each title found in the CSV:
+      - if no recipe with that title exists yet, create it and insert all
+        of its ingredient rows.
+      - if a recipe with that title already exists, update its servings
+        and REPLACE its entire recipe_ingredients list with what's
+        currently in the CSV -- so an edited quantity, a removed
+        ingredient, or a newly added one all take effect. (This can't
+        affect already-generated shopping lists: those store their own
+        copied-out ingredient/quantity data and never look at
+        recipe_ingredients again.)
+
+    A recipe whose title isn't in the CSV at all (e.g. one added through
+    the New Recipe form) is left completely untouched.
+
+    Note: title is the only thing identifying a recipe here, since there's
+    no id column in the CSV. Renaming a title in the CSV is indistinguishable
+    from deleting one recipe and adding a new one -- it creates a new recipe
+    under the new title and leaves the old-titled one exactly as it was."""
     db = get_db()
+
+    # Group every CSV row by title first, so we have each recipe's complete,
+    # current ingredient list in hand before touching the database.
+    recipes_in_csv = {}  # title.lower() -> {"title", "servings", "ingredients"}
     with open(RECIPES_CSV, newline="") as f:
         for row in csv.DictReader(f):
             title = (row.get("title") or "").strip()
@@ -125,21 +266,48 @@ def load_recipes_from_csv():
             if unit not in UNIT_CHOICES:
                 unit = "units"
 
-            recipe_id = get_or_create_recipe(db, title, servings)
-            ingredient_id = get_or_create_ingredient(db, ingredient_name, "")
+            title_key = title.lower()
+            if title_key not in recipes_in_csv:
+                recipes_in_csv[title_key] = {
+                    "title": title,
+                    "servings": servings,
+                    "ingredients": {},
+                }
 
-            already_have_it = db.execute(
-                "SELECT 1 FROM recipe_ingredients WHERE recipe_id = ? AND ingredient_id = ?",
-                (recipe_id, ingredient_id),
-            ).fetchone()
-            if already_have_it is None:
-                db.execute(
-                    """
-                    INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (recipe_id, ingredient_id, quantity, unit),
-                )
+            # Merge repeated ingredient lines under the same title (e.g. a
+            # typo'd duplicate row) by summing quantity, instead of trying
+            # to insert the same (recipe, ingredient) pair twice.
+            ingredients = recipes_in_csv[title_key]["ingredients"]
+            ingredient_key = ingredient_name.lower()
+            if ingredient_key not in ingredients:
+                ingredients[ingredient_key] = {"name": ingredient_name, "quantity": 0.0, "unit": unit}
+            ingredients[ingredient_key]["quantity"] += quantity
+
+    for entry in recipes_in_csv.values():
+        recipe = db.execute(
+            "SELECT * FROM recipes WHERE LOWER(title) = LOWER(?)", (entry["title"],)
+        ).fetchone()
+
+        if recipe is None:
+            recipe_id = get_or_create_recipe(db, entry["title"], entry["servings"])
+        else:
+            recipe_id = recipe["id"]
+            db.execute(
+                "UPDATE recipes SET servings = ? WHERE id = ?",
+                (entry["servings"], recipe_id),
+            )
+            db.execute("DELETE FROM recipe_ingredients WHERE recipe_id = ?", (recipe_id,))
+
+        for line in entry["ingredients"].values():
+            ingredient_id = get_or_create_ingredient(db, line["name"], "")
+            db.execute(
+                """
+                INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
+                VALUES (?, ?, ?, ?)
+                """,
+                (recipe_id, ingredient_id, line["quantity"], line["unit"]),
+            )
+
     db.commit()
     db.close()
 
@@ -205,19 +373,77 @@ def load_dietary_substitutions():
 
 
 # ---------------------------------------------------------------------------
+# Manually re-run the CSV sync (same three functions the app calls at
+# startup), so editing a CSV doesn't require restarting the Flask server.
+# ---------------------------------------------------------------------------
+@app.route("/reload", methods=["POST"])
+def reload_from_files():
+    load_ingredients_from_csv()
+    load_recipes_from_csv()
+    load_dietary_substitutions()
+    flash("Reloaded ingredients.csv, recipes.csv, and substitutions_*.csv.")
+    return redirect(url_for("index"))
+
+
+# ---------------------------------------------------------------------------
 # Home: pick recipes, set servings, choose a diet profile, generate a list
 # ---------------------------------------------------------------------------
+DEFAULT_RECIPE_LIMIT = 6
+
+
 @app.route("/")
 def index():
     db = get_db()
     search = request.args.get("q", "").strip()
+
+    # Recipes already checked before a search was typed need to stay
+    # visible and checked even if the search term (or the default 6-recipe
+    # cap below) would otherwise hide them. The search form's JS carries
+    # these over as "selected"/"servings_<id>" query params when it submits
+    # -- see the script at the bottom of index.html.
+    selected_ids = []
+    for raw_id in request.args.getlist("selected"):
+        if raw_id.isdigit():
+            selected_ids.append(int(raw_id))
+
     if search:
-        recipes = db.execute(
-            "SELECT * FROM recipes WHERE LOWER(title) LIKE LOWER(?) ORDER BY title",
+        base_rows = db.execute(
+            "SELECT id FROM recipes WHERE LOWER(title) LIKE LOWER(?) ORDER BY title",
             (f"%{search}%",),
         ).fetchall()
     else:
-        recipes = db.execute("SELECT * FROM recipes ORDER BY title").fetchall()
+        base_rows = db.execute(
+            "SELECT id FROM recipes ORDER BY title LIMIT ?", (DEFAULT_RECIPE_LIMIT,)
+        ).fetchall()
+
+    recipe_ids = []
+    for row in base_rows:
+        recipe_ids.append(row["id"])
+    for sid in selected_ids:
+        if sid not in recipe_ids:
+            recipe_ids.append(sid)
+
+    recipes = []
+    if recipe_ids:
+        # Can't parameterize the NUMBER of placeholders in an IN (...)
+        # clause, only the values -- so we build one "?" per id here, then
+        # still pass every id through as a bound parameter, same as usual.
+        placeholders = ",".join("?" for _ in recipe_ids)
+        recipes = db.execute(
+            f"SELECT * FROM recipes WHERE id IN ({placeholders}) ORDER BY title",
+            recipe_ids,
+        ).fetchall()
+
+    total_recipe_count = db.execute("SELECT COUNT(*) c FROM recipes").fetchone()["c"]
+
+    # If a selected recipe's servings box was edited before the search
+    # reloaded the page, carry that value over too, instead of resetting
+    # it back to the recipe's default servings.
+    servings_overrides = {}
+    for sid in selected_ids:
+        raw = request.args.get(f"servings_{sid}")
+        if raw:
+            servings_overrides[sid] = raw
 
     # Attach each recipe's ingredient list so the page can preview them
     recipes_with_ingredients = []
@@ -244,6 +470,11 @@ def index():
         recipes=recipes_with_ingredients,
         diet_types=diet_types,
         search=search,
+        selected_ids=selected_ids,
+        servings_overrides=servings_overrides,
+        show_limit_hint=(not search) and (total_recipe_count > DEFAULT_RECIPE_LIMIT),
+        total_recipe_count=total_recipe_count,
+        default_limit=DEFAULT_RECIPE_LIMIT,
     )
 
 
@@ -260,10 +491,17 @@ def new_recipe():
         ingredients = []
         for row in db.execute("SELECT id, name, category FROM ingredients ORDER BY name"):
             ingredients.append(dict(row))
+        # The category dropdown offers whatever categories already exist in
+        # the ingredients table (so adding, say, "Spices" ingredients via
+        # ingredients.csv makes "Spices" show up here too) plus a way to
+        # type a brand new one on the form itself.
+        categories = []
+        for row in db.execute("SELECT DISTINCT category FROM ingredients ORDER BY category"):
+            categories.append(row["category"])
         db.close()
         return render_template(
             "new_recipe.html",
-            categories=INGREDIENT_CATEGORIES,
+            categories=categories,
             units=UNIT_CHOICES,
             ingredients=ingredients,
         )
@@ -291,6 +529,9 @@ def new_recipe():
     units = request.form.getlist("unit")
     names = request.form.getlist("ingredient_name")
     categories = request.form.getlist("category")
+    # Set when a row's category dropdown was left on "+ New category" --
+    # holds the typed-in name of that new category for the row.
+    new_categories = request.form.getlist("new_category")
     ingredient_ids = request.form.getlist("ingredient_id")
 
     # Collect valid rows, merging repeated ingredients (same as how
@@ -309,7 +550,8 @@ def new_recipe():
         quantity = quantities[i]
         unit = units[i].strip()
         name = names[i].strip()
-        category = categories[i]
+        category = categories[i].strip()
+        new_category = new_categories[i].strip()
         ingredient_id = ingredient_ids[i].strip()
 
         if not name or not unit or not quantity:
@@ -340,7 +582,10 @@ def new_recipe():
                 "name": name,
                 "unit": unit,
                 "quantity": 0.0,
-                "category": category if category in INGREDIENT_CATEGORIES else "Other",
+                # category is blank when "+ New category" was picked --
+                # use the typed new_category instead, falling back to
+                # "Other" if that was left empty too.
+                "category": category or new_category or "Other",
             }
         merged[key]["quantity"] += quantity
 
@@ -355,25 +600,32 @@ def new_recipe():
     )
     recipe_id = cursor.lastrowid
 
+    ingredient_lines = []
     for row in merged.values():
         # row["ingredient_id"] is set if this row was picked from the
         # autocomplete dropdown (an existing ingredient); otherwise it's
-        # None, meaning this is a brand new ingredient that needs creating.
+        # None, meaning this is a brand new ingredient that needs creating
+        # (and, since it's genuinely new, also added to ingredients.csv).
         if row["ingredient_id"] is not None:
             ingredient_id = row["ingredient_id"]
         else:
-            ingredient_id = get_or_create_ingredient(db, row["name"], row["category"])
+            ingredient_id = get_or_create_ingredient_and_sync_csv(db, row["name"], row["category"])
 
+        quantity = round(row["quantity"], 2)
         db.execute(
             """
             INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
             VALUES (?, ?, ?, ?)
             """,
-            (recipe_id, ingredient_id, round(row["quantity"], 2), row["unit"]),
+            (recipe_id, ingredient_id, quantity, row["unit"]),
         )
+        ingredient_lines.append((row["name"], quantity, row["unit"]))
 
     db.commit()
     db.close()
+
+    upsert_recipe_in_csv(title, servings, ingredient_lines)
+
     flash(f'Recipe "{title}" added.')
     return redirect(url_for("index"))
 
@@ -386,10 +638,17 @@ def new_recipe():
 @app.route("/recipes/<int:recipe_id>/delete", methods=["POST"])
 def delete_recipe(recipe_id):
     db = get_db()
+    # Fetch the title before deleting -- recipes.csv is matched by title,
+    # and it won't be readable from the DB once the row is gone.
+    recipe = db.execute("SELECT title FROM recipes WHERE id = ?", (recipe_id,)).fetchone()
     db.execute("DELETE FROM recipe_ingredients WHERE recipe_id = ?", (recipe_id,))
     db.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
     db.commit()
     db.close()
+
+    if recipe is not None:
+        remove_recipe_from_csv(recipe["title"])
+
     flash("Recipe deleted.")
     return redirect(url_for("index"))
 

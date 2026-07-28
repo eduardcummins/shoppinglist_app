@@ -1,2 +1,19 @@
 ingredient,substitute,conversion_factor,note,ingredient_category,substitute_category
 Granulated Sugar,Stevia,0.1,"Swapped for Stevia (1:10 ratio) — sugar is not diabetic-friendly.",Pantry,Pantry
+Brown Sugar,Brown Sugar Substitute (Erythritol Blend),1.0,"1:1 erythritol-based swap — same texture and measuring, minimal blood sugar impact.",Pantry,Pantry
+Light Brown Sugar,Brown Sugar Substitute (Erythritol Blend),1.0,"1:1 erythritol-based swap for light brown sugar.",Pantry,Pantry
+Dark Brown Sugar,Brown Sugar Substitute (Erythritol Blend),1.0,"1:1 erythritol-based swap for dark brown sugar.",Pantry,Pantry
+Muscovado Sugar,Brown Sugar Substitute (Erythritol Blend),1.0,"1:1 erythritol-based swap — muscovado's molasses notes are close enough for most recipes.",Pantry,Pantry
+Demerara Sugar,Monk Fruit Sweetener,1.0,"1:1 monk fruit swap; keeps a similar coarse texture for topping/baking.",Pantry,Pantry
+Turbinado Sugar,Monk Fruit Sweetener,1.0,"1:1 monk fruit swap; keeps a similar coarse texture for topping/baking.",Pantry,Pantry
+Confectioners' Sugar,Powdered Erythritol,1.0,"1:1 powdered-erythritol swap for dusting/frosting without the sugar spike.",Pantry,Pantry
+Honey,Sugar-Free Honey Substitute (Allulose-Based),1.0,"1:1 liquid swap — allulose-based honey substitutes measure the same as honey.",Pantry,Pantry
+Maple Syrup,Sugar-Free Maple Syrup,1.0,"1:1 liquid swap for pancakes/baking with far less impact on blood sugar.",Pantry,Pantry
+Golden Syrup,Sugar-Free Golden Syrup Substitute,1.0,"1:1 liquid swap for baking and glazes.",Pantry,Pantry
+Light Corn Syrup,Sugar-Free Corn Syrup Substitute,1.0,"1:1 liquid swap — keeps the same texture for candy-making/baking.",Pantry,Pantry
+Dark Corn Syrup,Sugar-Free Corn Syrup Substitute,1.0,"1:1 liquid swap — keeps the same texture for candy-making/baking.",Pantry,Pantry
+Agave Nectar,Sugar-Free Agave Substitute (Allulose Syrup),1.0,"1:1 liquid swap; agave itself is very high glycemic despite being 'natural'.",Pantry,Pantry
+Date Syrup,Sugar-Free Date Syrup Substitute,1.0,"1:1 liquid swap for a similar caramel-like flavor with less sugar impact.",Pantry,Pantry
+Rice Syrup,Sugar-Free Rice Syrup Substitute,1.0,"1:1 liquid swap — regular rice syrup is almost pure glucose.",Pantry,Pantry
+Molasses,Sugar-Free Molasses Substitute,1.0,"1:1 liquid swap; keeps the deep flavor molasses adds to baking.",Pantry,Pantry
+Condensed Milk,Sugar-Free Condensed Milk,1.0,"1:1 swap — regular condensed milk is roughly half sugar by weight.",Pantry,Pantry

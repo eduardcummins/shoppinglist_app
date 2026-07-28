@@ -6,19 +6,19 @@
 -- substitutions_<diet>.csv. Edit those to add data; there's nothing to
 -- change here.
 
-CREATE TABLE ingredients (
+CREATE TABLE IF NOT EXISTS ingredients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     category TEXT NOT NULL -- e.g., 'Pantry', 'Dairy', 'Produce'
 );
 
-CREATE TABLE recipes (
+CREATE TABLE IF NOT EXISTS recipes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     servings INTEGER NOT NULL DEFAULT 4
 );
 
-CREATE TABLE recipe_ingredients (
+CREATE TABLE IF NOT EXISTS recipe_ingredients (
     recipe_id INTEGER,
     ingredient_id INTEGER,
     quantity REAL NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE recipe_ingredients (
 );
 
 -- Note: conversion_factor adjusts non 1-to-1 ratios (e.g., 0.1 for Stevia replacing Sugar)
-CREATE TABLE dietary_substitutions (
+CREATE TABLE IF NOT EXISTS dietary_substitutions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     diet_type TEXT NOT NULL, -- e.g., 'diabetic', 'gluten-free'
     original_ingredient_id INTEGER,
@@ -42,7 +42,7 @@ CREATE TABLE dietary_substitutions (
 
 -- A generated shopping list: one per "generate" action, tied to the diet
 -- profile that was active, so a list is reproducible/explainable later.
-CREATE TABLE shopping_lists (
+CREATE TABLE IF NOT EXISTS shopping_lists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -52,7 +52,7 @@ CREATE TABLE shopping_lists (
 -- Individual line items on a generated list. Quantities are already merged
 -- across recipes and substituted for the chosen diet by the time they land
 -- here — this table is the *result*, not raw recipe data.
-CREATE TABLE shopping_list_items (
+CREATE TABLE IF NOT EXISTS shopping_list_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     shopping_list_id INTEGER NOT NULL,
     ingredient_id INTEGER NOT NULL,

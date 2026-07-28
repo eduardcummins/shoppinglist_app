@@ -8,3 +8,108 @@ Simple Pancakes,2,Eggs,1,units
 Simple Pancakes,2,Granulated Sugar,20,grams
 Simple Pancakes,2,Whole Milk,200,ml
 Simple Pancakes,2,Baking Powder,5,grams
+Classic Scrambled Eggs,2,Eggs,4,units
+Classic Scrambled Eggs,2,Unsalted Butter,15,grams
+Classic Scrambled Eggs,2,Whole Milk,30,ml
+Classic Scrambled Eggs,2,Kosher Salt,2,grams
+Classic Scrambled Eggs,2,Black Pepper,1,grams
+Tomato Basil Pasta,4,Spaghetti,400,grams
+Tomato Basil Pasta,4,Crushed Tomatoes,800,grams
+Tomato Basil Pasta,4,Fresh Basil,20,grams
+Tomato Basil Pasta,4,Garlic,4,units
+Tomato Basil Pasta,4,Olive Oil,45,ml
+Classic Grilled Cheese,1,Sourdough Bread,2,units
+Classic Grilled Cheese,1,Cheddar Cheese,60,grams
+Classic Grilled Cheese,1,Unsalted Butter,20,grams
+Banana Bread,8,Bananas,3,units
+Banana Bread,8,All-Purpose Flour,250,grams
+Banana Bread,8,Granulated Sugar,150,grams
+Banana Bread,8,Unsalted Butter,115,grams
+Banana Bread,8,Eggs,2,units
+Banana Bread,8,Baking Soda,5,grams
+Guacamole,4,Avocados,3,units
+Guacamole,4,Limes,30,ml
+Guacamole,4,Red Onions,50,grams
+Guacamole,4,Roma Tomatoes,100,grams
+Guacamole,4,Kosher Salt,5,grams
+Lemon Vinaigrette,6,Olive Oil,120,ml
+Lemon Vinaigrette,6,Lemons,40,ml
+Lemon Vinaigrette,6,Dijon Mustard,10,grams
+Lemon Vinaigrette,6,Honey,15,grams
+Lemon Vinaigrette,6,Kosher Salt,3,grams
+Garlic Mashed Potatoes,4,Russet Potatoes,900,grams
+Garlic Mashed Potatoes,4,Heavy Cream,120,ml
+Garlic Mashed Potatoes,4,Unsalted Butter,60,grams
+Garlic Mashed Potatoes,4,Garlic,6,units
+Garlic Mashed Potatoes,4,Kosher Salt,8,grams
+Classic Caesar Salad,2,Romaine Lettuce,200,grams
+Classic Caesar Salad,2,Caesar Dressing,60,ml
+Classic Caesar Salad,2,Parmesan Cheese,30,grams
+Classic Caesar Salad,2,Croutons,40,grams
+Classic Oatmeal,1,Old-Fashioned Oats,50,grams
+Classic Oatmeal,1,Whole Milk,120,ml
+Classic Oatmeal,1,Honey,15,grams
+Classic Oatmeal,1,Cinnamon,2,grams
+French Omelette,1,Eggs,3,units
+French Omelette,1,Unsalted Butter,20,grams
+French Omelette,1,Fresh Chives,5,grams
+French Omelette,1,Kosher Salt,2,grams
+Basic Crepes,4,All-Purpose Flour,125,grams
+Basic Crepes,4,Whole Milk,250,ml
+Basic Crepes,4,Eggs,2,units
+Basic Crepes,4,Unsalted Butter,30,grams
+Basic Crepes,4,Granulated Sugar,15,grams
+Chicken Noodle Soup,6,Chicken Breast,500,grams
+Chicken Noodle Soup,6,Chicken Broth,1500,ml
+Chicken Noodle Soup,6,Carrots,150,grams
+Chicken Noodle Soup,6,Celery,100,grams
+Chicken Noodle Soup,6,Egg Noodles,200,grams
+Classic Vinaigrette,4,Olive Oil,90,ml
+Classic Vinaigrette,4,Red Wine Vinegar,30,ml
+Classic Vinaigrette,4,Dijon Mustard,10,grams
+Classic Vinaigrette,4,Kosher Salt,4,grams
+Classic Vinaigrette,4,Black Pepper,1,grams
+Vanilla Sponge Cake,8,All-Purpose Flour,200,grams
+Vanilla Sponge Cake,8,Granulated Sugar,200,grams
+Vanilla Sponge Cake,8,Unsalted Butter,200,grams
+Vanilla Sponge Cake,8,Eggs,4,units
+Vanilla Sponge Cake,8,Baking Powder,8,grams
+Classic French Toast,2,Sourdough Bread,4,units
+Classic French Toast,2,Eggs,2,units
+Classic French Toast,2,Whole Milk,60,ml
+Classic French Toast,2,Cinnamon,3,grams
+Classic French Toast,2,Unsalted Butter,20,grams
+Beef Chili,6,Ground Beef,750,grams
+Beef Chili,6,Kidney Beans,400,grams
+Beef Chili,6,Crushed Tomatoes,800,grams
+Beef Chili,6,Yellow Onions,150,grams
+Beef Chili,6,Chili Powder,20,grams
+Creamy Tomato Soup,4,Canned Diced Tomatoes,800,grams
+Creamy Tomato Soup,4,Heavy Cream,100,ml
+Creamy Tomato Soup,4,Vegetable Broth,500,ml
+Creamy Tomato Soup,4,Yellow Onions,100,grams
+Creamy Tomato Soup,4,Garlic,3,units
+Pico de Gallo,4,Roma Tomatoes,300,grams
+Pico de Gallo,4,White Onions,80,grams
+Pico de Gallo,4,Jalapeño Peppers,30,grams
+Pico de Gallo,4,Fresh Cilantro,15,grams
+Pico de Gallo,4,Limes,30,ml
+Honey Mustard Dip,4,Mayonnaise,100,grams
+Honey Mustard Dip,4,Yellow Mustard,30,grams
+Honey Mustard Dip,4,Honey,30,grams
+Honey Mustard Dip,4,Lemons,10,ml
+Classic Cornbread,8,Cornmeal,200,grams
+Classic Cornbread,8,All-Purpose Flour,150,grams
+Classic Cornbread,8,Granulated Sugar,100,grams
+Classic Cornbread,8,Buttermilk,240,ml
+Classic Cornbread,8,Eggs,2,units
+Classic Cornbread,8,Unsalted Butter,80,grams
+Garlic Butter Sauce,4,Unsalted Butter,100,grams
+Garlic Butter Sauce,4,Garlic,5,units
+Garlic Butter Sauce,4,Fresh Parsley,10,grams
+Garlic Butter Sauce,4,Lemons,15,ml
+Simple Rice Pilaf,4,White Rice,200,grams
+Simple Rice Pilaf,4,Chicken Broth,400,ml
+Simple Rice Pilaf,4,Unsalted Butter,30,grams
+Simple Rice Pilaf,4,Yellow Onions,60,grams
+Simple Rice Pilaf,4,Kosher Salt,5,grams

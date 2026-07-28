@@ -11,6 +11,12 @@
     </p>
 </section>
 
+<div class="toolbar-row">
+    <form action="{{ url_for('reload_from_files') }}" method="POST">
+        <button type="submit" class="secondary-btn">Reload from files</button>
+    </form>
+</div>
+
 <form action="{{ url_for('index') }}" method="GET" class="search-form" id="recipe-search-form">
     <input
         type="search"
@@ -21,12 +27,16 @@
         autocomplete="off">
     <button type="submit" class="secondary-btn">Search</button>
     {% if search %}
-    <a href="{{ url_for('index') }}" class="link-back">Clear</a>
+    <button type="submit" class="link-back" id="clear-search-btn">Clear</button>
     {% endif %}
 </form>
 
 {% if search and not recipes %}
-<p class="empty">No recipes match "{{ search }}" — <a href="{{ url_for('index') }}">clear search</a>.</p>
+<p class="empty">No recipes match "{{ search }}".</p>
+{% endif %}
+
+{% if show_limit_hint %}
+<p class="empty">Showing {{ default_limit }} of {{ total_recipe_count }} recipes — search by title to find others.</p>
 {% endif %}
 
 <form action="{{ url_for('generate') }}" method="POST" class="builder">
@@ -44,7 +54,11 @@
                 aria-label="Delete recipe">✕</button>
 
             <label class="recipe-select">
-                <input type="checkbox" name="use_recipe" value="{{ recipe.id }}">
+                <input
+                    type="checkbox"
+                    name="use_recipe"
+                    value="{{ recipe.id }}"
+                    {{ 'checked' if recipe.id in selected_ids else '' }}>
                 <span class="recipe-title">{{ recipe.title }}</span>
             </label>
 
@@ -54,7 +68,7 @@
                     type="number"
                     id="servings_{{ recipe.id }}"
                     name="servings_{{ recipe.id }}"
-                    value="{{ recipe.servings }}"
+                    value="{{ servings_overrides.get(recipe.id, recipe.servings) }}"
                     min="1"
                     step="1">
                 <span class="servings-hint">(recipe makes {{ recipe.servings }})</span>
@@ -105,9 +119,58 @@
     var searchForm = document.getElementById('recipe-search-form');
     var searchTimer = null;
 
+    // A search reloads the page via GET, which would otherwise reset every
+    // checkbox/servings box to whatever the server rendered -- losing
+    // anything checked before the search. To carry that state through, we
+    // copy the currently-checked recipes (and their servings values) into
+    // hidden fields on the search form itself right before it submits, so
+    // they ride along as query params (see index()/selected_ids in app.py,
+    // which re-shows/re-checks those recipes even if the search wouldn't
+    // otherwise include them).
+    function carrySelectionIntoSearchForm() {
+        var oldHiddenFields = searchForm.querySelectorAll('.selected-hidden');
+        oldHiddenFields.forEach(function (field) { field.remove(); });
+
+        var checkedBoxes = document.querySelectorAll('input[name="use_recipe"]:checked');
+        checkedBoxes.forEach(function (checkbox) {
+            var recipeId = checkbox.value;
+
+            var idField = document.createElement('input');
+            idField.type = 'hidden';
+            idField.name = 'selected';
+            idField.value = recipeId;
+            idField.className = 'selected-hidden';
+            searchForm.appendChild(idField);
+
+            var servingsInput = document.getElementById('servings_' + recipeId);
+            if (servingsInput) {
+                var servingsField = document.createElement('input');
+                servingsField.type = 'hidden';
+                servingsField.name = 'servings_' + recipeId;
+                servingsField.value = servingsInput.value;
+                servingsField.className = 'selected-hidden';
+                searchForm.appendChild(servingsField);
+            }
+        });
+    }
+
+    // form.submit() (used below for the debounced auto-submit) does NOT
+    // fire the form's "submit" event -- only a real click/Enter or
+    // requestSubmit() does -- so requestSubmit() is used here instead,
+    // letting one "submit" listener below cover every way this form gets
+    // submitted (typing, clicking Search, clicking Clear, pressing Enter).
+    searchForm.addEventListener('submit', carrySelectionIntoSearchForm);
+
     searchInput.addEventListener('input', function () {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(function () { searchForm.submit(); }, 400);
+        searchTimer = setTimeout(function () { searchForm.requestSubmit(); }, 400);
     });
+
+    var clearButton = document.getElementById('clear-search-btn');
+    if (clearButton) {
+        clearButton.addEventListener('click', function () {
+            searchInput.value = '';
+        });
+    }
 </script>
 {% endblock %}

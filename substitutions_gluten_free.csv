@@ -1,2 +1,39 @@
 ingredient,substitute,conversion_factor,note,ingredient_category,substitute_category
 All-Purpose Flour,Almond Flour,1.0,"Swapped for Almond Flour (1:1 ratio) — standard flour contains gluten.",Pantry,Pantry
+Whole Wheat Flour,Gluten-Free All-Purpose Flour Blend,1.0,"1:1 swap with a GF all-purpose blend for structure closer to wheat flour.",Pantry,Pantry
+Cake Flour,Gluten-Free All-Purpose Flour Blend,1.0,"1:1 swap; use a blend meant for delicate bakes where possible.",Pantry,Pantry
+Bread Flour,Gluten-Free Bread Flour Blend,1.0,"1:1 swap — GF bread blends add the structure regular bread flour's gluten provides.",Pantry,Pantry
+Self-Rising Flour,Gluten-Free Self-Rising Flour Blend,1.0,"1:1 swap; already includes the leavening self-rising flour normally provides.",Pantry,Pantry
+Rye Flour,Gluten-Free All-Purpose Flour Blend,1.0,"1:1 swap — rye flour contains gluten despite being a different grain than wheat.",Pantry,Pantry
+Couscous,Quinoa,1.0,"1:1 swap by volume — couscous is a wheat pasta, not a grain, so it's not gluten-free.",Pantry,Pantry
+Spaghetti,Gluten-Free Spaghetti,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Penne,Gluten-Free Penne,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Macaroni,Gluten-Free Macaroni,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Linguine,Gluten-Free Linguine,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Fettuccine,Gluten-Free Fettuccine,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Lasagna Noodles,Gluten-Free Lasagna Noodles,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Ramen Noodles,Gluten-Free Ramen Noodles,1.0,"1:1 swap — traditional ramen noodles are wheat-based.",Pantry,Pantry
+Udon Noodles,Rice Noodles,1.0,"1:1 swap — udon is wheat-based; rice noodles are a naturally gluten-free stand-in.",Pantry,Pantry
+Soba Noodles,Rice Noodles,1.0,"1:1 swap — most soba is a wheat/buckwheat blend unless labeled 100% buckwheat.",Pantry,Pantry
+Breadcrumbs,Gluten-Free Breadcrumbs,1.0,"1:1 swap for coating/binding.",Pantry,Pantry
+Panko Breadcrumbs,Gluten-Free Panko Breadcrumbs,1.0,"1:1 swap — keeps the same light, crispy coating.",Pantry,Pantry
+Graham Crackers,Gluten-Free Graham Crackers,1.0,"1:1 swap for crusts and snacking.",Pantry,Pantry
+Saltine Crackers,Gluten-Free Crackers,1.0,"1:1 swap for snacking/toppings.",Pantry,Pantry
+Ritz Crackers,Gluten-Free Crackers,1.0,"1:1 swap for snacking/toppings.",Pantry,Pantry
+Pretzels,Gluten-Free Pretzels,1.0,"1:1 swap, usually rice- or corn-based.",Pantry,Pantry
+Puff Pastry,Gluten-Free Puff Pastry,1.0,"1:1 swap — needs a GF flour blend to laminate properly.",Frozen,Frozen
+Barley,Quinoa,1.0,"1:1 swap by volume — barley is one of the three classic gluten grains.",Pantry,Pantry
+Bulgur Wheat,Quinoa,1.0,"1:1 swap by volume — bulgur is cracked wheat, not gluten-free.",Pantry,Pantry
+Soy Sauce,Tamari,1.0,"1:1 swap — most soy sauce contains wheat; tamari is usually brewed without it (check the label).",Pantry,Pantry
+Sourdough Bread,Gluten-Free Bread,1.0,"1:1 swap by slice/weight.",Bakery,Bakery
+Whole Wheat Bread,Gluten-Free Bread,1.0,"1:1 swap by slice/weight.",Bakery,Bakery
+White Bread,Gluten-Free Bread,1.0,"1:1 swap by slice/weight.",Bakery,Bakery
+Rye Bread,Gluten-Free Bread,1.0,"1:1 swap by slice/weight.",Bakery,Bakery
+Pita Bread,Gluten-Free Pita Bread,1.0,"1:1 swap by piece.",Bakery,Bakery
+Tortillas Flour,Tortillas Corn,1.0,"1:1 swap — corn tortillas are naturally gluten-free.",Bakery,Bakery
+Bagels,Gluten-Free Bagels,1.0,"1:1 swap by piece.",Bakery,Bakery
+Croissants,Gluten-Free Croissants,1.0,"1:1 swap by piece — texture won't laminate quite the same, but works for the recipe.",Bakery,Bakery
+Hamburger Buns,Gluten-Free Hamburger Buns,1.0,"1:1 swap by piece.",Bakery,Bakery
+Hot Dog Buns,Gluten-Free Hot Dog Buns,1.0,"1:1 swap by piece.",Bakery,Bakery
+Beer,Gluten-Free Beer,1.0,"1:1 swap — most beer is brewed from barley or wheat.",Beverages,Beverages
+Seitan,Tofu,1.0,"1:1 swap by weight — seitan is essentially pure wheat gluten, so it's a hard no for this diet.",Pantry,Produce

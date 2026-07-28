@@ -37,6 +37,22 @@ h1, h2 {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* Also used on a <button> (index.html's "Clear" search button), which
+   needs its default button chrome stripped to look like the plain links
+   this class was originally written for. */
+.link-back {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent);
+    font-size: inherit;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.link-back:hover { text-decoration: underline; }
+
 /* ---------------- Top bar ---------------- */
 .topbar {
     display: flex;
@@ -97,6 +113,14 @@ a:hover { text-decoration: underline; }
 
 .hero h1 { font-size: 2rem; margin-bottom: 10px; }
 .hero-sub { color: var(--muted); max-width: 60ch; margin: 0; }
+
+.toolbar-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.toolbar-row form { margin: 0; }
 
 /* ---------------- Recipe search ---------------- */
 .search-form {
@@ -258,6 +282,13 @@ a:hover { text-decoration: underline; }
 .remove-ingredient-btn:hover { background: var(--warn-soft); }
 
 .ingredient-autocomplete { position: relative; }
+
+.category-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
 
 .autocomplete-suggestions {
     position: absolute;
