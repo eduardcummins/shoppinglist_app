@@ -93,105 +93,6 @@ def get_or_create_recipe(db, title, servings):
     return cursor.lastrowid
 
 
-# ---------------------------------------------------------------------------
-# CSV write-back: the New Recipe form and the recipe delete button write
-# their changes into ingredients.csv/recipes.csv too, so the files and the
-# database stay in sync in both directions (not just CSV -> database, like
-# the load_*_from_csv() functions below).
-# ---------------------------------------------------------------------------
-def _atomic_write_csv(path, fieldnames, rows):
-    """Write rows to path as a CSV, without ever leaving a half-written
-    file in place: the new content is written to a temporary file first,
-    then swapped into place with os.replace(), which is atomic on the same
-    filesystem. (This app's dev server handles one request at a time, so
-    two writes can't actually overlap -- this just protects against a
-    crash mid-write, e.g. the process being killed.)"""
-    temp_path = path + ".tmp"
-    with open(temp_path, "w", newline="") as f:
-        # csv.writer defaults to "\r\n" line endings (the format's official
-        # spec), but every CSV in this project uses plain "\n" -- match
-        # that so a write-back doesn't turn the whole file into a giant diff.
-        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
-    os.replace(temp_path, path)
-
-
-def append_ingredient_to_csv(name, category):
-    """Add one new row to ingredients.csv. Only call this for an
-    ingredient that doesn't already exist (see
-    get_or_create_ingredient_and_sync_csv) -- there's nothing to match or
-    replace, just a row to add."""
-    rows = []
-    if os.path.exists(INGREDIENTS_CSV):
-        with open(INGREDIENTS_CSV, newline="") as f:
-            rows = list(csv.DictReader(f))
-    rows.append({"name": name, "category": category})
-    _atomic_write_csv(INGREDIENTS_CSV, ["name", "category"], rows)
-
-
-def get_or_create_ingredient_and_sync_csv(db, name, category):
-    """Same as get_or_create_ingredient(), but also appends the ingredient
-    to ingredients.csv if it's genuinely new. Used only by the New Recipe
-    form's "add new ingredient" path -- the CSV-sync functions below
-    (load_recipes_from_csv, load_dietary_substitutions) also create
-    missing ingredients, but shouldn't write back to the file they're
-    reading from."""
-    existing = db.execute(
-        "SELECT id FROM ingredients WHERE LOWER(name) = LOWER(?)", (name,)
-    ).fetchone()
-    ingredient_id = get_or_create_ingredient(db, name, category)
-    if existing is None:
-        append_ingredient_to_csv(name, resolve_ingredient_category(category))
-    return ingredient_id
-
-
-RECIPE_CSV_FIELDS = ["title", "servings", "ingredient_name", "quantity", "unit"]
-
-
-def _replace_recipe_rows_in_csv(title, new_rows):
-    """Drop every existing recipes.csv row for this title (case-
-    insensitive) and write new_rows (a list of row dicts) in their place.
-    new_rows may be empty, which simply removes the title's block."""
-    rows = []
-    if os.path.exists(RECIPES_CSV):
-        with open(RECIPES_CSV, newline="") as f:
-            rows = list(csv.DictReader(f))
-
-    kept_rows = []
-    for row in rows:
-        if (row.get("title") or "").strip().lower() != title.strip().lower():
-            kept_rows.append(row)
-    kept_rows.extend(new_rows)
-
-    _atomic_write_csv(RECIPES_CSV, RECIPE_CSV_FIELDS, kept_rows)
-
-
-def upsert_recipe_in_csv(title, servings, ingredient_lines):
-    """Add or replace this recipe's block of rows in recipes.csv, matched
-    by title (case-insensitive) -- the same natural key load_recipes_from_csv()
-    uses -- so creating a recipe through the New Recipe form writes back
-    consistently, and a later sync neither re-inserts it as new nor leaves
-    stale rows behind. ingredient_lines is a list of
-    (ingredient_name, quantity, unit) tuples."""
-    new_rows = []
-    for ingredient_name, quantity, unit in ingredient_lines:
-        new_rows.append({
-            "title": title,
-            "servings": servings,
-            "ingredient_name": ingredient_name,
-            "quantity": quantity,
-            "unit": unit,
-        })
-    _replace_recipe_rows_in_csv(title, new_rows)
-
-
-def remove_recipe_from_csv(title):
-    """Remove every row for this title (case-insensitive) from
-    recipes.csv, mirroring a recipe delete in the app."""
-    _replace_recipe_rows_in_csv(title, [])
-
-
 def load_ingredients_from_csv():
     """Sync ingredients from ingredients.csv, matched by name
     (case-insensitive): add any ingredient that's missing, and update its
@@ -600,16 +501,14 @@ def new_recipe():
     )
     recipe_id = cursor.lastrowid
 
-    ingredient_lines = []
     for row in merged.values():
         # row["ingredient_id"] is set if this row was picked from the
         # autocomplete dropdown (an existing ingredient); otherwise it's
-        # None, meaning this is a brand new ingredient that needs creating
-        # (and, since it's genuinely new, also added to ingredients.csv).
+        # None, meaning this is a brand new ingredient that needs creating.
         if row["ingredient_id"] is not None:
             ingredient_id = row["ingredient_id"]
         else:
-            ingredient_id = get_or_create_ingredient_and_sync_csv(db, row["name"], row["category"])
+            ingredient_id = get_or_create_ingredient(db, row["name"], row["category"])
 
         quantity = round(row["quantity"], 2)
         db.execute(
@@ -619,12 +518,9 @@ def new_recipe():
             """,
             (recipe_id, ingredient_id, quantity, row["unit"]),
         )
-        ingredient_lines.append((row["name"], quantity, row["unit"]))
 
     db.commit()
     db.close()
-
-    upsert_recipe_in_csv(title, servings, ingredient_lines)
 
     flash(f'Recipe "{title}" added.')
     return redirect(url_for("index"))
@@ -638,16 +534,10 @@ def new_recipe():
 @app.route("/recipes/<int:recipe_id>/delete", methods=["POST"])
 def delete_recipe(recipe_id):
     db = get_db()
-    # Fetch the title before deleting -- recipes.csv is matched by title,
-    # and it won't be readable from the DB once the row is gone.
-    recipe = db.execute("SELECT title FROM recipes WHERE id = ?", (recipe_id,)).fetchone()
     db.execute("DELETE FROM recipe_ingredients WHERE recipe_id = ?", (recipe_id,))
     db.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
     db.commit()
     db.close()
-
-    if recipe is not None:
-        remove_recipe_from_csv(recipe["title"])
 
     flash("Recipe deleted.")
     return redirect(url_for("index"))
@@ -762,6 +652,27 @@ def generate():
 
 
 # ---------------------------------------------------------------------------
+# History of previously generated lists
+# ---------------------------------------------------------------------------
+@app.route("/lists")
+def all_lists():
+    db = get_db()
+    lists = db.execute(
+        """
+        SELECT sl.*,
+               COUNT(sli.id) AS item_count,
+               SUM(sli.checked) AS checked_count
+        FROM shopping_lists sl
+        LEFT JOIN shopping_list_items sli ON sli.shopping_list_id = sl.id
+        GROUP BY sl.id
+        ORDER BY sl.created_at DESC
+        """
+    ).fetchall()
+    db.close()
+    return render_template("history.html", lists=lists)
+
+
+# ---------------------------------------------------------------------------
 # View a single shopping list, grouped by aisle/category
 # ---------------------------------------------------------------------------
 @app.route("/list/<int:list_id>")
@@ -785,6 +696,16 @@ def view_list(list_id):
         """,
         (list_id,),
     ).fetchall()
+
+    # For the "add an item" form's ingredient-search box and category
+    # picker -- same pattern as the New Recipe form.
+    ingredients = []
+    for row in db.execute("SELECT id, name, category FROM ingredients ORDER BY name"):
+        ingredients.append(dict(row))
+    categories = []
+    for row in db.execute("SELECT DISTINCT category FROM ingredients ORDER BY category"):
+        categories.append(row["category"])
+
     db.close()
 
     # Group items by category for aisle-by-aisle display
@@ -807,7 +728,90 @@ def view_list(list_id):
         grouped=grouped,
         total=total,
         checked=checked,
+        ingredients=ingredients,
+        categories=categories,
+        units=UNIT_CHOICES,
     )
+
+
+# ---------------------------------------------------------------------------
+# Add a manual, ad-hoc item to an existing shopping list (not tied to any
+# recipe) -- e.g. "we also need paper towels".
+# ---------------------------------------------------------------------------
+@app.route("/list/<int:list_id>/add-item", methods=["POST"])
+def add_list_item(list_id):
+    db = get_db()
+    shopping_list = db.execute(
+        "SELECT id FROM shopping_lists WHERE id = ?", (list_id,)
+    ).fetchone()
+    if shopping_list is None:
+        db.close()
+        flash("That shopping list doesn't exist.")
+        return redirect(url_for("index"))
+
+    name = request.form.get("ingredient_name", "").strip()
+    ingredient_id = request.form.get("ingredient_id", "").strip()
+    category = request.form.get("category", "").strip()
+    new_category = request.form.get("new_category", "").strip()
+    quantity = request.form.get("quantity", "").strip()
+    unit = request.form.get("unit", "").strip()
+
+    if not name or not quantity or not unit:
+        db.close()
+        flash("Fill in an ingredient, quantity, and unit.")
+        return redirect(url_for("view_list", list_id=list_id))
+
+    try:
+        quantity = float(quantity)
+    except ValueError:
+        db.close()
+        flash("Quantity must be a number.")
+        return redirect(url_for("view_list", list_id=list_id))
+
+    if unit not in UNIT_CHOICES:
+        unit = "units"
+
+    # Same rule as the New Recipe form: an id from the autocomplete dropdown
+    # means an existing ingredient, so use it directly; otherwise this is a
+    # brand new ingredient, so create it.
+    if ingredient_id.isdigit():
+        resolved_ingredient_id = int(ingredient_id)
+    else:
+        resolved_ingredient_id = get_or_create_ingredient(
+            db, name, category or new_category or "Other"
+        )
+
+    quantity = round(quantity, 2)
+
+    # Same merge rule as generate(): a line for this ingredient + unit
+    # already on the list gets its quantity bumped instead of a duplicate
+    # row, so manually added items behave the same way as generated ones.
+    existing_item = db.execute(
+        """
+        SELECT id, quantity FROM shopping_list_items
+        WHERE shopping_list_id = ? AND ingredient_id = ? AND unit = ?
+        """,
+        (list_id, resolved_ingredient_id, unit),
+    ).fetchone()
+
+    if existing_item is not None:
+        db.execute(
+            "UPDATE shopping_list_items SET quantity = ? WHERE id = ?",
+            (round(existing_item["quantity"] + quantity, 2), existing_item["id"]),
+        )
+    else:
+        db.execute(
+            """
+            INSERT INTO shopping_list_items (shopping_list_id, ingredient_id, quantity, unit)
+            VALUES (?, ?, ?, ?)
+            """,
+            (list_id, resolved_ingredient_id, quantity, unit),
+        )
+    db.commit()
+    db.close()
+
+    flash(f'Added "{name}" to the list.')
+    return redirect(url_for("view_list", list_id=list_id))
 
 
 # ---------------------------------------------------------------------------
@@ -836,12 +840,30 @@ def delete_list(list_id):
     db.commit()
     db.close()
     flash("List deleted.")
-    return redirect(url_for("index"))
+    return redirect(url_for("all_lists"))
+
+
+def seed_from_csv_if_empty():
+    """Load ingredients.csv/recipes.csv into the database, but only the
+    very first time each table is empty. After that, the database is the
+    source of truth, so a restart (including Flask's debug-mode auto-
+    reloader, which re-runs this on every code save) won't re-sync the
+    CSVs and silently undo an in-app recipe delete. To pull in CSV edits
+    made after that first run, use the "Reload from files" button, which
+    calls the same load_*_from_csv() functions on demand."""
+    db = get_db()
+    ingredients_empty = db.execute("SELECT COUNT(*) c FROM ingredients").fetchone()["c"] == 0
+    recipes_empty = db.execute("SELECT COUNT(*) c FROM recipes").fetchone()["c"] == 0
+    db.close()
+
+    if ingredients_empty:
+        load_ingredients_from_csv()
+    if recipes_empty:
+        load_recipes_from_csv()
 
 
 if __name__ == "__main__":
     init_db()
-    load_ingredients_from_csv()
-    load_recipes_from_csv()
+    seed_from_csv_if_empty()
     load_dietary_substitutions()
     app.run(debug=True, port=5001)

@@ -226,9 +226,19 @@ a:hover { text-decoration: underline; }
     margin-bottom: 8px;
 }
 
-.recipe-form-panel input[type="text"],
-.recipe-form-panel input[type="number"],
-.recipe-form-panel textarea {
+/* The ">" (direct child) here is deliberate: this is spacing for a
+   standalone field sitting straight in a .recipe-form-panel (Title,
+   Servings), not a blanket rule for every input[type] anywhere inside the
+   panel. Without the ">", this used to also match inputs nested inside
+   .item-row (several levels down), silently overriding that row's own
+   margin-bottom: 0 by CSS specificity and pushing just the Qty/name
+   fields out of vertical alignment with the unit/category/button next
+   to them -- a real bug that hit both the New Recipe and Add Item rows.
+   Scoping to direct children means a future nested control can never
+   leak this spacing in by accident again. */
+.recipe-form-panel > input[type="text"],
+.recipe-form-panel > input[type="number"],
+.recipe-form-panel > textarea {
     width: 100%;
     font-family: 'Inter', sans-serif;
     padding: 8px 12px;
@@ -240,7 +250,12 @@ a:hover { text-decoration: underline; }
 
 .recipe-form-panel textarea { resize: vertical; }
 
-.ingredient-row {
+/* One row of controls: Qty / Unit / Ingredient / Category / Action.
+   Shared by the New Recipe form's ingredient row and the shopping list's
+   "Add an item" row, so there's exactly one place to fix if this ever
+   needs to change, instead of two near-duplicate definitions drifting
+   apart. */
+.item-row {
     display: grid;
     grid-template-columns: 90px 140px 1fr 130px 38px;
     gap: 8px;
@@ -248,24 +263,34 @@ a:hover { text-decoration: underline; }
     align-items: center;
 }
 
-/* Every control in the row shares one explicit height so inputs, native
-   selects (which render with their own vertical metrics per browser), and
-   the remove button all line up on the same baseline. */
-.ingredient-row input,
-.ingredient-row select,
-.ingredient-row .remove-ingredient-btn {
+/* "Add an item" ends in a real "Add item" button instead of a small "✕",
+   so its last column needs to be wide enough for text. */
+.item-row-wide { grid-template-columns: 90px 140px 1fr 130px auto; }
+
+.add-item-panel { margin-bottom: 24px; }
+
+/* Every control -- inputs, native selects (which render with their own
+   vertical metrics per browser), and any button used as the row's last
+   column (a small "✕" or a full "Add item") -- shares one explicit
+   height/box-sizing/margin so they all land on the same baseline. This is
+   scoped to .item-row specifically (not a blanket input/select/button
+   rule) so it always wins regardless of what ancestor panel the row ends
+   up inside. */
+.item-row input,
+.item-row select,
+.item-row button {
     box-sizing: border-box;
     height: 38px;
+    margin: 0;
 }
 
-.ingredient-row input,
-.ingredient-row select {
+.item-row input,
+.item-row select {
     font-family: 'Inter', sans-serif;
     padding: 0 10px;
     border-radius: 6px;
     border: 1px solid var(--line);
     font-size: 0.9rem;
-    margin-bottom: 0;
     width: 100%;
 }
 
@@ -331,7 +356,7 @@ a:hover { text-decoration: underline; }
 .secondary-btn:hover { background: #c9dcc5; }
 
 @media (max-width: 640px) {
-    .ingredient-row {
+    .item-row {
         grid-template-columns: 1fr 1fr;
     }
 }
@@ -580,6 +605,45 @@ a:hover { text-decoration: underline; }
 }
 
 .delete-btn:hover { background: var(--warn-soft); }
+
+/* ---------------- History ---------------- */
+.history-list { list-style: none; margin: 0; padding: 0; }
+
+.history-item {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    background: var(--paper-raised);
+}
+
+.history-item a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    text-decoration: none !important;
+    color: var(--ink) !important;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.history-item form { margin: 0 14px 0 0; }
+
+.history-number {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+}
+
+.history-date { color: var(--muted); font-size: 0.85rem; }
+
+.history-progress {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+}
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 520px) {

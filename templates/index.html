@@ -6,7 +6,7 @@
     <p class="eyebrow">Pick your recipes, we'll write the list</p>
     <h1>What are you cooking this week?</h1>
     <p class="hero-sub">
-        Select recipes, set servings, and choose a diet profile — ingredients
+        Select recipes, set servings, and choose a diet profile - ingredients
         get merged into one list, substituted where needed, and grouped by aisle.
     </p>
 </section>
@@ -36,7 +36,7 @@
 {% endif %}
 
 {% if show_limit_hint %}
-<p class="empty">Showing {{ default_limit }} of {{ total_recipe_count }} recipes — search by title to find others.</p>
+<p class="empty">Showing {{ default_limit }} of {{ total_recipe_count }} recipes - search by title to find others.</p>
 {% endif %}
 
 <form action="{{ url_for('generate') }}" method="POST" class="builder">
@@ -95,15 +95,11 @@
     <div class="diet-panel">
         <label for="diet_type">Shopping for a diet profile?</label>
         <select id="diet_type" name="diet_type">
-            <option value="none">No substitutions — buy as written</option>
+            <option value="none">No substitutions - buy as written</option>
             {% for d in diet_types %}
             <option value="{{ d.diet_type }}">{{ d.diet_type | capitalize }}-friendly</option>
             {% endfor %}
         </select>
-        <p class="diet-hint">
-            Ingredients this profile flags (e.g. sugar, gluten flour) are swapped
-            automatically at the right quantity — not just 1:1.
-        </p>
     </div>
 
     <button type="submit" class="cta">Generate shopping list</button>

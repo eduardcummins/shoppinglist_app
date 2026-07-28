@@ -20,7 +20,7 @@
         <label>Ingredients</label>
 
         <div id="ingredient-rows">
-            <div class="ingredient-row">
+            <div class="item-row">
                 <input type="number" name="quantity" step="any" min="0" placeholder="Qty" required>
                 <select name="unit" required>
                     {% for u in units %}
@@ -138,10 +138,10 @@
 
     ingredientRows.addEventListener('input', function (e) {
         if (!e.target.classList.contains('ingredient-search')) return;
-        // e.target.closest('.ingredient-row') walks up from the exact
-        // element that fired the event to the nearest ancestor matching
-        // that selector -- i.e. "which ingredient row is this input in?".
-        var row = e.target.closest('.ingredient-row');
+        // e.target.closest('.item-row') walks up from the exact element
+        // that fired the event to the nearest ancestor matching that
+        // selector -- i.e. "which ingredient row is this input in?".
+        var row = e.target.closest('.item-row');
         // The text no longer necessarily matches the previously picked
         // ingredient, so drop the resolved id until another suggestion
         // is clicked (or none is, and this becomes a new ingredient).
@@ -151,13 +151,13 @@
 
     ingredientRows.addEventListener('focusin', function (e) {
         if (!e.target.classList.contains('ingredient-search')) return;
-        var row = e.target.closest('.ingredient-row');
+        var row = e.target.closest('.item-row');
         if (e.target.value.trim()) renderSuggestions(row, e.target.value);
     });
 
     ingredientRows.addEventListener('focusout', function (e) {
         if (!e.target.classList.contains('ingredient-search')) return;
-        var row = e.target.closest('.ingredient-row');
+        var row = e.target.closest('.item-row');
         // Delay so a click on a suggestion (see mousedown below) still
         // lands before the list disappears.
         setTimeout(function () { hideSuggestions(row); }, 150);
@@ -167,7 +167,7 @@
         var li = e.target.closest('.suggestion-item');
         if (!li) return;
         e.preventDefault(); // keep focus on the input, skip a stray focusout
-        var row = li.closest('.ingredient-row');
+        var row = li.closest('.item-row');
         selectSuggestion(row, li.dataset.id, li.dataset.name, li.dataset.category);
     });
 
@@ -176,7 +176,7 @@
     // typed, so it doesn't get submitted by mistake).
     ingredientRows.addEventListener('change', function (e) {
         if (!e.target.classList.contains('category-select')) return;
-        var row = e.target.closest('.ingredient-row');
+        var row = e.target.closest('.item-row');
         var newCategoryInput = row.querySelector('.new-category-input');
         if (e.target.value === '') {
             newCategoryInput.hidden = false;
@@ -188,7 +188,7 @@
     });
 
     document.getElementById('add-ingredient-btn').addEventListener('click', function () {
-        var newRow = ingredientRows.querySelector('.ingredient-row').cloneNode(true);
+        var newRow = ingredientRows.querySelector('.item-row').cloneNode(true);
         newRow.querySelectorAll('input').forEach(function (input) { input.value = ''; });
         newRow.querySelectorAll('select').forEach(function (select) { select.selectedIndex = 0; });
         var suggestions = newRow.querySelector('.autocomplete-suggestions');
@@ -202,9 +202,9 @@
 
     ingredientRows.addEventListener('click', function (e) {
         if (!e.target.classList.contains('remove-ingredient-btn')) return;
-        var rows = ingredientRows.querySelectorAll('.ingredient-row');
+        var rows = ingredientRows.querySelectorAll('.item-row');
         if (rows.length > 1) {
-            e.target.closest('.ingredient-row').remove();
+            e.target.closest('.item-row').remove();
         }
     });
 </script>

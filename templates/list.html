@@ -49,11 +49,128 @@
     </div>
 </div>
 
+<div class="recipe-form-panel add-item-panel">
+    <label>Add an item</label>
+    <form action="{{ url_for('add_list_item', list_id=shopping_list.id) }}" method="POST" class="item-row item-row-wide">
+        <input type="number" name="quantity" step="any" min="0" placeholder="Qty" required>
+        <select name="unit" required>
+            {% for u in units %}
+            <option value="{{ u }}">{{ u }}</option>
+            {% endfor %}
+        </select>
+        <div class="ingredient-autocomplete">
+            <input
+                type="text"
+                name="ingredient_name"
+                id="add-item-search"
+                class="ingredient-search"
+                placeholder="Ingredient name"
+                autocomplete="off"
+                required>
+            <input type="hidden" name="ingredient_id" id="add-item-id-hidden">
+            <ul class="autocomplete-suggestions" id="add-item-suggestions" hidden></ul>
+        </div>
+        <div class="category-picker">
+            <select name="category" id="add-item-category-select">
+                {% for c in categories %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+                <option value="">+ New category…</option>
+            </select>
+            <input
+                type="text"
+                name="new_category"
+                id="add-item-new-category"
+                placeholder="New category name"
+                hidden>
+        </div>
+        <button type="submit" class="secondary-btn">Add item</button>
+    </form>
+    <p class="diet-hint">
+        Start typing to find an existing ingredient, or leave the name as
+        typed to add a brand new one (pick a category, or "+ New category…").
+    </p>
+</div>
+
 <div class="list-footer">
     <a href="{{ url_for('index') }}" class="link-back">← Build another list</a>
+    <a href="{{ url_for('all_lists') }}" class="link-back">View all lists</a>
     <form action="{{ url_for('delete_list', list_id=shopping_list.id) }}" method="POST"
           onsubmit="return confirm('Delete this shopping list?');">
         <button type="submit" class="link-danger">Delete this list</button>
     </form>
 </div>
+
+<script>
+    // Same ingredient-search / category-picker pattern as the New Recipe
+    // form, simplified since this is a single, non-repeating row (no
+    // cloning, so listeners can attach straight to these elements instead
+    // of using event delegation on a shared container).
+    var ADD_ITEM_INGREDIENTS = {{ ingredients | tojson }};
+    var ADD_ITEM_MAX_SUGGESTIONS = 8;
+
+    var addItemSearch = document.getElementById('add-item-search');
+    var addItemIdHidden = document.getElementById('add-item-id-hidden');
+    var addItemSuggestions = document.getElementById('add-item-suggestions');
+    var addItemCategorySelect = document.getElementById('add-item-category-select');
+    var addItemNewCategory = document.getElementById('add-item-new-category');
+
+    function renderAddItemSuggestions(query) {
+        query = query.trim().toLowerCase();
+        addItemSuggestions.innerHTML = '';
+        if (!query) { addItemSuggestions.hidden = true; return; }
+
+        var matches = ADD_ITEM_INGREDIENTS.filter(function (ing) {
+            return ing.name.toLowerCase().indexOf(query) !== -1;
+        }).slice(0, ADD_ITEM_MAX_SUGGESTIONS);
+
+        if (!matches.length) { addItemSuggestions.hidden = true; return; }
+
+        matches.forEach(function (ing) {
+            var li = document.createElement('li');
+            li.className = 'suggestion-item';
+            li.textContent = ing.name + ' (' + ing.category + ')';
+            li.dataset.id = ing.id;
+            li.dataset.name = ing.name;
+            li.dataset.category = ing.category;
+            addItemSuggestions.appendChild(li);
+        });
+        addItemSuggestions.hidden = false;
+    }
+
+    addItemSearch.addEventListener('input', function () {
+        addItemIdHidden.value = '';
+        renderAddItemSuggestions(addItemSearch.value);
+    });
+
+    addItemSearch.addEventListener('focus', function () {
+        if (addItemSearch.value.trim()) renderAddItemSuggestions(addItemSearch.value);
+    });
+
+    addItemSearch.addEventListener('blur', function () {
+        setTimeout(function () { addItemSuggestions.hidden = true; }, 150);
+    });
+
+    addItemSuggestions.addEventListener('mousedown', function (e) {
+        var li = e.target.closest('.suggestion-item');
+        if (!li) return;
+        e.preventDefault();
+        addItemSearch.value = li.dataset.name;
+        addItemIdHidden.value = li.dataset.id;
+        addItemCategorySelect.value = li.dataset.category;
+        addItemNewCategory.hidden = true;
+        addItemNewCategory.value = '';
+        addItemSuggestions.hidden = true;
+    });
+
+    addItemCategorySelect.addEventListener('change', function () {
+        if (addItemCategorySelect.value === '') {
+            addItemNewCategory.hidden = false;
+            addItemNewCategory.focus();
+        } else {
+            addItemNewCategory.hidden = true;
+            addItemNewCategory.value = '';
+        }
+    });
+</script>
 {% endblock %}
