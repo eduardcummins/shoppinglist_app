@@ -20,10 +20,9 @@ SUBSTITUTIONS_GLOB = os.path.join(BASE_DIR, "substitutions_*.csv")
 
 
 def get_db():
-    """Open a new database connection with row access by column name."""
     db = sqlite3.connect(DATABASE)
     db.row_factory = sqlite3.Row
-    db.execute("PRAGMA foreign_keys = ON") # Will refuse to delete a recipe if it still has recipe_ingredients rows
+    db.execute("PRAGMA foreign_keys = ON") # refuses to delete a recipe with recipe_ingredients rows still attached
     return db
 
 
@@ -36,12 +35,10 @@ def init_db():
 
 
 def resolve_ingredient_category(category):
-    """Assigns correct category to an ingredient, defaulting to "Other" if none is provided."""
     return category.strip() if category and category.strip() else "Other"
 
 
 def get_or_create_ingredient(db, name, category):
-    """Case-insensitive ingredient lookup; inserts a new row if none exists."""
     ingredient = db.execute(
         "SELECT * FROM ingredients WHERE LOWER(name) = LOWER(?)", (name,)
     ).fetchone()
@@ -56,7 +53,6 @@ def get_or_create_ingredient(db, name, category):
 
 
 def get_or_create_recipe(db, title, servings):
-    """Case-insensitive recipe lookup; inserts a new row if none exists."""
     recipe = db.execute(
         "SELECT * FROM recipes WHERE LOWER(title) = LOWER(?)", (title,)
     ).fetchone()
@@ -70,11 +66,6 @@ def get_or_create_recipe(db, title, servings):
 
 
 def load_ingredients_from_csv():
-    """Sync ingredients from ingredients.csv, matched by name
-    (case-insensitive): add any ingredient that's missing, and update its
-    category if the CSV's now says something different. Never deletes an
-    ingredient, so this is safe to run every startup (or on demand) and
-    won't erase or orphan an ingredient added through the app itself."""
     db = get_db()
     with open(INGREDIENTS_CSV, newline="") as f:
         for row in csv.DictReader(f):
@@ -99,32 +90,8 @@ def load_ingredients_from_csv():
 
 
 def load_recipes_from_csv():
-    """Sync recipes/recipe_ingredients from recipes.csv, matched by recipe
-    title (case-insensitive). One row = one ingredient used in one recipe,
-    so the same title appears on several rows, once per ingredient.
-
-    For each title found in the CSV:
-      - if no recipe with that title exists yet, create it and insert all
-        of its ingredient rows.
-      - if a recipe with that title already exists, update its servings
-        and REPLACE its entire recipe_ingredients list with what's
-        currently in the CSV -- so an edited quantity, a removed
-        ingredient, or a newly added one all take effect. (This can't
-        affect already-generated shopping lists: those store their own
-        copied-out ingredient/quantity data and never look at
-        recipe_ingredients again.)
-
-    A recipe whose title isn't in the CSV at all (e.g. one added through
-    the New Recipe form) is left completely untouched.
-
-    Note: title is the only thing identifying a recipe here, since there's
-    no id column in the CSV. Renaming a title in the CSV is indistinguishable
-    from deleting one recipe and adding a new one -- it creates a new recipe
-    under the new title and leaves the old-titled one exactly as it was."""
     db = get_db()
-
-    # Group every CSV row by title first, so we have each recipe's complete,
-    # current ingredient list in hand before touching the database.
+    # Grouped by title first so each recipe's full ingredient list is ready before any db writes.
     recipes_in_csv = {}  # title.lower() -> {"title", "servings", "ingredients"}
     with open(RECIPES_CSV, newline="") as f:
         for row in csv.DictReader(f):
@@ -151,9 +118,6 @@ def load_recipes_from_csv():
                     "ingredients": {},
                 }
 
-            # Merge repeated ingredient lines under the same title (e.g. a
-            # typo'd duplicate row) by summing quantity, instead of trying
-            # to insert the same (recipe, ingredient) pair twice.
             ingredients = recipes_in_csv[title_key]["ingredients"]
             ingredient_key = ingredient_name.lower()
             if ingredient_key not in ingredients:
@@ -190,15 +154,8 @@ def load_recipes_from_csv():
 
 
 def load_dietary_substitutions():
-    """Sync the dietary_substitutions table from substitutions_<diet>.csv
-    files in the project root, so editing a CSV and restarting the app is
-    enough to change substitution rules — no SQL required. Each file fully
-    replaces that diet's rows, so deleting a row from the CSV removes it
-    from the DB too."""
     db = get_db()
 
-    # glob.glob finds every file matching a filename pattern -- here, every
-    # file in the project folder named "substitutions_<something>.csv".
     for path in sorted(glob.glob(SUBSTITUTIONS_GLOB)):
         filename = os.path.basename(path)
         diet_type = filename[len("substitutions_"):-len(".csv")].replace("_", "-")
@@ -206,14 +163,7 @@ def load_dietary_substitutions():
         db.execute("DELETE FROM dietary_substitutions WHERE diet_type = ?", (diet_type,))
 
         with open(path, newline="") as f:
-            # enumerate(..., start=2) numbers rows starting at 2, not 0 or 1,
-            # since csv.DictReader already consumed row 1 (the header) --
-            # so row_num here matches the actual line number in the file,
-            # which makes the warning messages below easier to act on.
             for row_num, row in enumerate(csv.DictReader(f), start=2):
-                # row.get("ingredient") is None if that column is missing
-                # from this row; "or ''" swaps None for an empty string
-                # first, since None has no .strip() method.
                 ingredient_name = (row.get("ingredient") or "").strip()
                 substitute_name = (row.get("substitute") or "").strip()
                 note = (row.get("note") or "").strip()
@@ -249,22 +199,7 @@ def load_dietary_substitutions():
     db.close()
 
 
-# ---------------------------------------------------------------------------
-# Manually re-run the CSV sync (same three functions the app calls at
-# startup), so editing a CSV doesn't require restarting the Flask server.
-# ---------------------------------------------------------------------------
-@app.route("/reload", methods=["POST"])
-def reload_from_files():
-    load_ingredients_from_csv()
-    load_recipes_from_csv()
-    load_dietary_substitutions()
-    flash("Reloaded ingredients.csv, recipes.csv, and substitutions_*.csv.")
-    return redirect(url_for("index"))
-
-
-# ---------------------------------------------------------------------------
 # Home: pick recipes, set servings, choose a diet profile, generate a list
-# ---------------------------------------------------------------------------
 DEFAULT_RECIPE_LIMIT = 6
 
 
@@ -273,11 +208,6 @@ def index():
     db = get_db()
     search = request.args.get("q", "").strip()
 
-    # Recipes already checked before a search was typed need to stay
-    # visible and checked even if the search term (or the default 6-recipe
-    # cap below) would otherwise hide them. The search form's JS carries
-    # these over as "selected"/"servings_<id>" query params when it submits
-    # -- see the script at the bottom of index.html.
     selected_ids = []
     for raw_id in request.args.getlist("selected"):
         if raw_id.isdigit():
@@ -302,9 +232,7 @@ def index():
 
     recipes = []
     if recipe_ids:
-        # Can't parameterize the NUMBER of placeholders in an IN (...)
-        # clause, only the values -- so we build one "?" per id here, then
-        # still pass every id through as a bound parameter, same as usual.
+        # Only values can be parameterized, not the number of placeholders, so build one "?" per id.
         placeholders = ",".join("?" for _ in recipe_ids)
         recipes = db.execute(
             f"SELECT * FROM recipes WHERE id IN ({placeholders}) ORDER BY title",
@@ -313,16 +241,13 @@ def index():
 
     total_recipe_count = db.execute("SELECT COUNT(*) c FROM recipes").fetchone()["c"]
 
-    # If a selected recipe's servings box was edited before the search
-    # reloaded the page, carry that value over too, instead of resetting
-    # it back to the recipe's default servings.
+    # Carries over an edited servings value across a search reload instead of resetting it.
     servings_overrides = {}
     for sid in selected_ids:
         raw = request.args.get(f"servings_{sid}")
         if raw:
             servings_overrides[sid] = raw
 
-    # Attach each recipe's ingredient list so the page can preview them
     recipes_with_ingredients = []
     for recipe in recipes:
         ingredients = db.execute(
@@ -355,23 +280,14 @@ def index():
     )
 
 
-# ---------------------------------------------------------------------------
 # Add a new recipe, with a repeatable ingredient row per line
-# ---------------------------------------------------------------------------
 @app.route("/recipes/new", methods=["GET", "POST"])
 def new_recipe():
     if request.method == "GET":
         db = get_db()
-        # The template turns this list into JSON for the ingredient-search
-        # box's JavaScript, which needs plain dicts (not sqlite3.Row objects)
-        # to convert cleanly -- so we copy each row into a dict by hand.
         ingredients = []
         for row in db.execute("SELECT id, name, category FROM ingredients ORDER BY name"):
-            ingredients.append(dict(row))
-        # The category dropdown offers whatever categories already exist in
-        # the ingredients table (so adding, say, "Spices" ingredients via
-        # ingredients.csv makes "Spices" show up here too) plus a way to
-        # type a brand new one on the form itself.
+            ingredients.append(dict(row))  # dict, not sqlite3.Row, so the template's tojson can serialize it
         categories = []
         for row in db.execute("SELECT DISTINCT category FROM ingredients ORDER BY category"):
             categories.append(row["category"])
@@ -406,23 +322,12 @@ def new_recipe():
     units = request.form.getlist("unit")
     names = request.form.getlist("ingredient_name")
     categories = request.form.getlist("category")
-    # Set when a row's category dropdown was left on "+ New category" --
-    # holds the typed-in name of that new category for the row.
-    new_categories = request.form.getlist("new_category")
+    new_categories = request.form.getlist("new_category")  # typed name when "+ New category" was picked
     ingredient_ids = request.form.getlist("ingredient_id")
 
-    # Collect valid rows, merging repeated ingredients (same as how
-    # generate() merges ingredients across recipes) so re-adding the same
-    # ingredient twice doesn't violate the recipe_ingredients primary key.
-    # A row picked from the autocomplete dropdown carries its ingredient_id
-    # directly, so it's merged/looked up by id rather than by name — that's
-    # what actually fixes "flour" vs "All-Purpose Flour" ending up as two
-    # separate ingredients.
+    # Merge repeated ingredients so re-adding one doesn't violate the recipe_ingredients primary key;
+    # keying by id (when picked from autocomplete) rather than name avoids "flour" vs "All-Purpose Flour" duplicates.
     merged = {}
-    # quantities/units/names/categories/ingredient_ids are five separate
-    # lists, one entry per ingredient row on the form, all in the same
-    # order -- so quantities[i], units[i], names[i], etc. all describe the
-    # same row. Looping over the index lets us read all five together.
     for i in range(len(quantities)):
         quantity = quantities[i]
         unit = units[i].strip()
@@ -438,16 +343,9 @@ def new_recipe():
         except ValueError:
             continue
 
-        # The unit field is a fixed dropdown; if a request didn't come from
-        # our form and sent something else, just fall back to "units"
-        # rather than trying to guess what was meant.
         if unit not in UNIT_CHOICES:
             unit = "units"
 
-        # Rows picked from the autocomplete dropdown carry their
-        # ingredient_id directly, so key on that instead of the name.
-        # New-ingredient rows (no id yet) are keyed by name instead, so
-        # re-adding the same brand new name twice on one form still merges.
         if ingredient_id.isdigit():
             key = ("id", int(ingredient_id))
         else:
@@ -459,9 +357,6 @@ def new_recipe():
                 "name": name,
                 "unit": unit,
                 "quantity": 0.0,
-                # category is blank when "+ New category" was picked --
-                # use the typed new_category instead, falling back to
-                # "Other" if that was left empty too.
                 "category": category or new_category or "Other",
             }
         merged[key]["quantity"] += quantity
@@ -478,9 +373,6 @@ def new_recipe():
     recipe_id = cursor.lastrowid
 
     for row in merged.values():
-        # row["ingredient_id"] is set if this row was picked from the
-        # autocomplete dropdown (an existing ingredient); otherwise it's
-        # None, meaning this is a brand new ingredient that needs creating.
         if row["ingredient_id"] is not None:
             ingredient_id = row["ingredient_id"]
         else:
@@ -502,11 +394,7 @@ def new_recipe():
     return redirect(url_for("index"))
 
 
-# ---------------------------------------------------------------------------
-# Delete a recipe (and its recipe_ingredients rows). Already-generated
-# shopping lists store their own copied-out ingredient rows and don't
-# reference recipes at all, so this can't affect them.
-# ---------------------------------------------------------------------------
+# Deleting a recipe can't affect already-generated lists: those store their own copied-out ingredient data.
 @app.route("/recipes/<int:recipe_id>/delete", methods=["POST"])
 def delete_recipe(recipe_id):
     db = get_db()
@@ -519,9 +407,7 @@ def delete_recipe(recipe_id):
     return redirect(url_for("index"))
 
 
-# ---------------------------------------------------------------------------
 # Generate a shopping list from the selected recipes + servings + diet
-# ---------------------------------------------------------------------------
 @app.route("/generate", methods=["POST"])
 def generate():
     db = get_db()
@@ -535,13 +421,7 @@ def generate():
     diet_type = request.form.get("diet_type", "none")
     list_name = request.form.get("name", "").strip()
 
-    # aggregated[(final_ingredient_id, unit)] = {"quantity": float, "notes": set()}
-    # The key is a 2-item tuple (an ingredient ID together with its unit),
-    # so quantities only ever add up when both match -- e.g. sugar measured
-    # in grams stays separate from sugar measured in units. "notes" is a
-    # set, not a list, so the same substitution note doesn't show up twice
-    # just because two different recipes both triggered it.
-    aggregated = {}
+    aggregated = {}  # (ingredient_id, unit) -> {"quantity": float, "notes": set()}
 
     for recipe_id in selected_recipe_ids:
         recipe = db.execute(
@@ -550,7 +430,6 @@ def generate():
         if recipe is None:
             continue
 
-        # How many servings did the user ask for this recipe?
         requested_servings = request.form.get(
             f"servings_{recipe_id}", recipe["servings"]
         )
@@ -602,10 +481,6 @@ def generate():
             (f"Shopping List #{list_id}", list_id),
         )
 
-    # .items() gives us (key, value) pairs -- and since each key here is
-    # itself a (ingredient_id, unit) tuple, Python lets us unpack both
-    # levels at once instead of writing "for key, data in ..." and then
-    # key[0]/key[1] every time we need the ingredient id or unit.
     for (ingredient_id, unit), data in aggregated.items():
         db.execute(
             """
@@ -627,9 +502,7 @@ def generate():
     return redirect(url_for("view_list", list_id=list_id))
 
 
-# ---------------------------------------------------------------------------
 # History of previously generated lists
-# ---------------------------------------------------------------------------
 @app.route("/lists")
 def all_lists():
     db = get_db()
@@ -648,9 +521,7 @@ def all_lists():
     return render_template("history.html", lists=lists)
 
 
-# ---------------------------------------------------------------------------
 # View a single shopping list, grouped by aisle/category
-# ---------------------------------------------------------------------------
 @app.route("/list/<int:list_id>")
 def view_list(list_id):
     db = get_db()
@@ -673,8 +544,6 @@ def view_list(list_id):
         (list_id,),
     ).fetchall()
 
-    # For the "add an item" form's ingredient-search box and category
-    # picker -- same pattern as the New Recipe form.
     ingredients = []
     for row in db.execute("SELECT id, name, category FROM ingredients ORDER BY name"):
         ingredients.append(dict(row))
@@ -684,7 +553,6 @@ def view_list(list_id):
 
     db.close()
 
-    # Group items by category for aisle-by-aisle display
     grouped = {}
     for item in items:
         category = item["category"]
@@ -710,10 +578,7 @@ def view_list(list_id):
     )
 
 
-# ---------------------------------------------------------------------------
-# Add a manual, ad-hoc item to an existing shopping list (not tied to any
-# recipe) -- e.g. "we also need paper towels".
-# ---------------------------------------------------------------------------
+# Add a manual, ad-hoc item to an existing shopping list (not tied to any recipe)
 @app.route("/list/<int:list_id>/add-item", methods=["POST"])
 def add_list_item(list_id):
     db = get_db()
@@ -747,9 +612,6 @@ def add_list_item(list_id):
     if unit not in UNIT_CHOICES:
         unit = "units"
 
-    # Same rule as the New Recipe form: an id from the autocomplete dropdown
-    # means an existing ingredient, so use it directly; otherwise this is a
-    # brand new ingredient, so create it.
     if ingredient_id.isdigit():
         resolved_ingredient_id = int(ingredient_id)
     else:
@@ -759,9 +621,7 @@ def add_list_item(list_id):
 
     quantity = round(quantity, 2)
 
-    # Same merge rule as generate(): a line for this ingredient + unit
-    # already on the list gets its quantity bumped instead of a duplicate
-    # row, so manually added items behave the same way as generated ones.
+    # Same merge rule as generate(): bump an existing (ingredient, unit) row instead of duplicating it.
     existing_item = db.execute(
         """
         SELECT id, quantity FROM shopping_list_items
@@ -790,9 +650,7 @@ def add_list_item(list_id):
     return redirect(url_for("view_list", list_id=list_id))
 
 
-# ---------------------------------------------------------------------------
 # Toggle a single item's checked state (used at the store)
-# ---------------------------------------------------------------------------
 @app.route("/list/<int:list_id>/toggle/<int:item_id>", methods=["POST"])
 def toggle_item(list_id, item_id):
     db = get_db()
@@ -805,9 +663,7 @@ def toggle_item(list_id, item_id):
     return redirect(url_for("view_list", list_id=list_id))
 
 
-# ---------------------------------------------------------------------------
 # Delete a single shopping list (and its items)
-# ---------------------------------------------------------------------------
 @app.route("/list/<int:list_id>/delete", methods=["POST"])
 def delete_list(list_id):
     db = get_db()
@@ -820,13 +676,7 @@ def delete_list(list_id):
 
 
 def seed_from_csv_if_empty():
-    """Load ingredients.csv/recipes.csv into the database, but only the
-    very first time each table is empty. After that, the database is the
-    source of truth, so a restart (including Flask's debug-mode auto-
-    reloader, which re-runs this on every code save) won't re-sync the
-    CSVs and silently undo an in-app recipe delete. To pull in CSV edits
-    made after that first run, use the "Reload from files" button, which
-    calls the same load_*_from_csv() functions on demand."""
+    # Only seeds empty tables, so restarts (incl. the debug reloader) don't undo an in-app delete.
     db = get_db()
     ingredients_empty = db.execute("SELECT COUNT(*) c FROM ingredients").fetchone()["c"] == 0
     recipes_empty = db.execute("SELECT COUNT(*) c FROM recipes").fetchone()["c"] == 0

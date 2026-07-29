@@ -114,14 +114,6 @@ a:hover { text-decoration: underline; }
 .hero h1 { font-size: 2rem; margin-bottom: 10px; }
 .hero-sub { color: var(--muted); max-width: 60ch; margin: 0; }
 
-.toolbar-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 12px;
-}
-
-.toolbar-row form { margin: 0; }
-
 /* ---------------- Recipe search ---------------- */
 .search-form {
     display: flex;

@@ -11,12 +11,6 @@
     </p>
 </section>
 
-<div class="toolbar-row">
-    <form action="{{ url_for('reload_from_files') }}" method="POST">
-        <button type="submit" class="secondary-btn">Reload from files</button>
-    </form>
-</div>
-
 <form action="{{ url_for('index') }}" method="GET" class="search-form" id="recipe-search-form">
     <input
         type="search"
